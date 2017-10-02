@@ -1,7 +1,3 @@
 consts.yaml
-PyTerraBackTyl.iml
-misc.xml
-modules.xml
-workspace.xml
-CONSTS.cpython-36.pyc
-CONST_abated.cpython-36.pyc
+__pycache__
+.idea
