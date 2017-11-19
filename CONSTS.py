@@ -1,4 +1,4 @@
-import tempfile
+
 from CONST_abated import load_from_yaml
 
 
@@ -22,7 +22,10 @@ class C(object):
     AUTHENTICATION_SERVICE_PORT = 2443
     SSL_CERTIFICATE_PATH = '/SOME/PATH/TBD.key'  # TODO: http://flask.pocoo.org/snippets/111/
 
-    GIT_WORKING_PATH = tempfile.mkdtemp()
+    GIT_WORKING_PATH = None
+
+    BACKEND_PLUGINS_PATH = 'backends'
+    BACKEND_CLASS = 'git_backend.GitBackend'
 
     # Declaring that these things exist so the IDE can find them without complaining. Values are populated below.
     AUTHENTICATION_SERVICE_IP = None
@@ -40,6 +43,8 @@ class C(object):
     LOCK_STATE_LOCKED = None
     LOCK_STATE_UNLOCKED = None
     LOCK_STATES = None
+
+    TFSTATE_FILE_NAME = None
 
 
 # Override the constant values, set user specified constants.
@@ -69,6 +74,8 @@ C.LOCK_STATES = {C.LOCK_STATE_INIT: C.HTTP_LOCKED,
                  C.LOCK_STATE_LOCKED: C.HTTP_CONFLICT,
                  C.LOCK_STATE_UNLOCKED: C.HTTP_OK}
 
+
+C.TFSTATE_FILE_NAME = 'terraform.tfstate'
 
 # If the user didn't manually specify a working directory, clean up the directory we crated in the OS's tmp space.
 # TODO: Didn't work. Investigate or just rely on the OS doing this for us ... or do it as part of shutdown().

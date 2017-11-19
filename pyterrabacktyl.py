@@ -1,19 +1,14 @@
+import os
+import sys
 import json
 import logging
 import argparse
+import abc_tylstore
+
 from CONSTS import C
 from flask import Flask, request
+from importlib import import_module
 
-# mod=__import__('tyls')
-# for mm in 'git_backend.GitBackend'.split('.'):
-#    mod = getattr(mod, mm)
-# mod('foo')
-
-
-# LOCK STATE TO INIT
-# GOT TFSTATE VIA request.data
-
-# TODO: terraform uses the request methods LOCK, UNLOCK and POST. Is there value in going to a single endpoint?
 
 class PyTerraBackTYL(object):
     # Forcing flask into a class for no other reason than I want to avoid using the 'global' keyword.
@@ -23,6 +18,25 @@ class PyTerraBackTYL(object):
         # TODO: make it a dict to track locking on multiple branches.
         self.__lock_state = C.LOCK_STATE_UNLOCKED
         self.backend_service = Flask('PyTerraBackTyl')
+
+        print(sys.path)
+        path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
+        paths = path_type([os.sep.join(abc_tylstore.__file__.split(os.sep)[0:-1])])
+        if isinstance(C.BACKEND_PLUGINS_PATH, str):
+            C.BACKEND_PLUGINS_PATH = path_type([C.BACKEND_PLUGINS_PATH])
+        else:
+            C.BACKEND_PLUGINS_PATH = path_type(C.BACKEND_PLUGINS_PATH)
+        paths += sys.path + C.BACKEND_PLUGINS_PATH
+        sys.path = path_type(set(paths))
+
+        print('oooooh, ', os.path)
+        mod = import_module('git_backend')
+        _class = getattr(mod, 'GitBackend')
+
+        if _class.__name__ in [sc.__name__ for sc in abc_tylstore.TYLStore.__subclasses__()]:
+            self.backend = _class(self)
+        else:
+            raise Exception('FOOBARed!')
 
         def __just_testing():
             logging.debug('\n'.join(['%s: %s' % (k, v) for (k, v) in request.values.items()]) or 'No post/get datat to unpack')
