@@ -19,7 +19,6 @@ class PyTerraBackTYL(object):
         # TODO: make it a dict to track locking on multiple branches.
         self.__env = None
         self.__backends = {}
-        self.__lock_state = C.LOCK_STATE_UNLOCKED
         self.backend_service = Flask('PyTerraBackTyl')
 
         path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
@@ -49,11 +48,11 @@ class PyTerraBackTYL(object):
             if state in C.LOCK_STATES.keys():
                 if method_ok:
                     if state_ok:
-                        self.__lock_state = state
+                        self.__backends[self.__env].__lock_state__ = state
                         logging.debug('Lock state set to %s' % state)
                         return 'State is now %s' % state, C.HTTP_OK
-                    return 'Cannot change from state %s to %s' % (self.__lock_state, state), C.LOCK_STATES[self.__lock_state]
-                return 'Invalid HTTP request method for state %s' % state, C.LOCK_STATES[self.__lock_state]
+                    return 'Cannot change from state %s to %s' % (self.__backends[self.__env].__lock_state__, state), C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
+                return 'Invalid HTTP request method for state %s' % state, C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
             else:
                 raise Exception('Yo, goofball! That is not a lock state!')  # TODO: real error message, exception type.
 
@@ -62,9 +61,9 @@ class PyTerraBackTYL(object):
             self.set_env_from_url()
             __just_testing()
             lock_status = __set_lock_state(C.LOCK_STATE_INIT, request.method == C.HTTP_METHOD_LOCK,
-                                           self.__lock_state == C.LOCK_STATE_UNLOCKED)
-            if self.__backends[self.__env].set_locked(request.data):
-                self.__lock_state = C.LOCK_STATE_LOCKED
+                                           self.__backends[self.__env].__lock_state__ == C.LOCK_STATE_UNLOCKED)
+            if self.__backends[self.__env].set_locked(request.data.decode()):
+                self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_LOCKED
                 return lock_status
             return 'Lock failed.', C.HTTP_ERROR
 
@@ -73,39 +72,30 @@ class PyTerraBackTYL(object):
             self.set_env_from_url()
             __just_testing()
             lock_status = __set_lock_state(C.LOCK_STATE_UNLOCKED, request.method == C.HTTP_METHOD_UNLOCK,
-                                           self.__lock_state in [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT])
+                                           self.__backends[self.__env].__lock_state__ in [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT])
 
-            if self.__backends[self.__env].set_unlocked(request.data):
+            if self.__backends[self.__env].set_unlocked(request.data.decode()):
                 return lock_status
             return 'Unlock failed.', C.HTTP_ERROR
 
         @self.backend_service.route('/', methods=['GET', 'POST'])
         def tf_backend():
             self.set_env_from_url()
-            fname = '/Users/alastad/wip/terraformPlayground/digitalocean/teststate'
 
-            try:
-                if request.method == 'POST':
-                    self.__backends[self.__env].store_tfstate(request.data.decode())
-                    # t = request.data.decode()
-                    # fout = open(fname, 'w')
-                    # fout.write(t)
-                    # fout.close()
-                    # print('Files:', request.data)
-                else:
-                    fin = open(fname, 'r')
-                    t = fin.read()
-                    fin.close()
+            if request.method == 'POST':
+                # TODO: decide if we really want to encode into utf-8
+                self.__backends[self.__env].store_tfstate(request.data.decode())
+                return 'alrighty!', C.HTTP_OK
+            else:
+                t = self.__backends[self.__env].get_tfstate()
                 return t, C.HTTP_OK
-            except FileNotFoundError as e:
-                return '', C.HTTP_OK
 
         @self.backend_service.route('/state', methods=['GET'])
         def state():
             # TODO: return legit values
             state = {'healthy': True,
-                     'lock_state': self.__lock_state,
-                     'http_code': C.LOCK_STATES[self.__lock_state],
+                     'lock_state': self.__backends[self.__env].__lock_state__,
+                     'http_code': C.LOCK_STATES[self.__backends[self.__env].__lock_state__],
                      'auth_service': C.USE_AUTHENTICATION_SERVICE}
             return json.dumps(state, indent=2)
 
@@ -121,13 +111,13 @@ class PyTerraBackTYL(object):
         @self.backend_service.errorhandler(404)
         def four_oh_four(thing):
             print(request.url, thing)
-            return 'oh, snap. It done gone broked.'
+            return 'oh, snap. It done gone broked.', 404
 
     def set_env_from_url(self):
         # TODO: currently looking at both GET and POST values. Maybe only GET makes sense here.
         self.__env = request.values['env'] if 'env' in request.values else ''
         if self.__env not in self.__backends:
-            self.__backends[self.__env] = self.backend_class(self)
+            self.__backends[self.__env] = self.backend_class(self.__env)
 
 
 if __name__ == '__main__':

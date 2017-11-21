@@ -1,9 +1,10 @@
 import abc
+from CONSTS import C
 
 
 class TYLStore(object):
     __metaclass__ = abc.ABCMeta
-    lock_state = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx IT\'S A TRAP!'
+    __lock_state__ = C.LOCK_STATE_UNLOCKED
 
     @abc.abstractmethod
     def set_locked(self, request):
