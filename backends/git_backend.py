@@ -1,8 +1,8 @@
 import os
+import git
 import logging
 import tempfile
 from CONSTS import C
-from dulwich import porcelain
 from abc_tylstore import TYLStore
 
 
@@ -16,17 +16,14 @@ class GitBackend(TYLStore):
         self.working_dir = os.sep.join([self.working_dir, self.ENV])
         self.tfstate_file_name = os.sep.join([self.working_dir, C.TFSTATE_FILE_NAME])
 
+        self.repository = git.Git(self.working_dir)
         self.__make_repo()
 
     def __make_repo(self):
         if not os.path.exists(self.working_dir):
-            porcelain.clone(C.GIT_REPOSITORY, target=self.working_dir)
-        repo = porcelain.open_repo(self.working_dir)
-
-        # if this is a new repo with no head, do a commit before creating the branch.
-
-        if self.ENV not in porcelain.branch_list(self.working_dir):
-            porcelain.branch_create(self.working_dir, self.ENV)
+            os.mkdir(self.working_dir, mode=0o700)
+            self.repository.clone(C.GIT_REPOSITORY, self.working_dir)
+        self.repository.pull()
 
     def set_locked(self, request):
         # create lock file
