@@ -1,5 +1,6 @@
 import os
 import git
+import json
 import logging
 import tempfile
 from CONSTS import C
@@ -15,6 +16,7 @@ class GitBackend(TYLStore):
             self.working_dir = self.working_dir[0:-1]
         self.working_dir = os.sep.join([self.working_dir, self.ENV])
         self.tfstate_file_name = os.sep.join([self.working_dir, C.TFSTATE_FILE_NAME])
+        self.lockfile = os.sep.join([self.working_dir, 'LOCKED'])
 
         self.repository = git.Git(self.working_dir)
         logging.debug('zjfdsklfjslkdfjlasdkjflaskdjflaksdjflasd '+self.working_dir)
@@ -25,8 +27,8 @@ class GitBackend(TYLStore):
             os.mkdir(self.working_dir, mode=0o700)
             self.repository.clone(C.GIT_REPOSITORY, self.working_dir)
 
-        # TODO: Seems to me there should be a way to get this from the self.respository variable.
-        branches = [h.name for h in git.Repo(self.working_dir).heads]
+        # TODO: Yuck. Why doesn't GitPython do this for me?
+        branches = [b.split('-')[0].split('/')[-1] for b in self.repository.branch('-r').replace('\r', '').split('\n')]
         if self.ENV in branches:
             self.repository.checkout(self.ENV)
         else:
@@ -34,13 +36,18 @@ class GitBackend(TYLStore):
         self.repository.pull()
 
     def set_locked(self, request):
-        import json
         # create lock file
-        lockfile = os.sep.join([self.working_dir, 'LOCKED'])
-        fout = open(lockfile, 'w')
+        logging.debug('LOCK file is %s' % self.lockfile)
+
+        self.repository.pull()
+
+        if os.path.exists(self.lockfile):
+            return False
+
+        fout = open(self.lockfile, 'w')
         fout.write(json.dumps(json.loads(request), indent=2))
         fout.close()
-        self.repository.add(lockfile)
+        self.repository.add(self.lockfile)
         self.repository.commit(m='How locked? Land locked!')
         self.repository.push('origin', self.ENV)
         # write request.data to file
@@ -48,16 +55,23 @@ class GitBackend(TYLStore):
         return True
 
     def set_unlocked(self, request):
-        # append the change log
-        # git rm lock file
-        # commit/push the rm
-        return True
+        self.repository.pull()
+        if os.path.exists(self.lockfile):
+            self.repository.rm(self.lockfile)
+            self.repository.commit(m='Remove lock file')
+            self.repository.push('origin', self.ENV)
+            return True
+        return False
 
     def get_lock_state(self):
-        # pull the repo
-        # check for lock file
-        # return contents of lock file || None
-        pass
+        self.repository.pull()
+        if os.path.exists(self.lockfile):
+            fin = open(self.lockfile, 'r')
+            state = fin.read()
+            fin.close()
+            logging.debug('STATE: %s' % state)
+            return state
+        return None
 
     def store_tfstate(self, tfstate_text):
         fout = open(self.tfstate_file_name, 'w')

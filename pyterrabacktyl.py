@@ -65,7 +65,7 @@ class PyTerraBackTYL(object):
             if self.__backends[self.__env].set_locked(request.data.decode()):
                 self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_LOCKED
                 return lock_status
-            return 'Lock failed.', C.HTTP_ERROR
+            return self.__backends[self.__env].get_lock_state(), C.HTTP_LOCKED
 
         @self.backend_service.route('/unlock', methods=['UNLOCK', 'GET'])
         def tf_unlock():
@@ -88,6 +88,7 @@ class PyTerraBackTYL(object):
                 return 'alrighty!', C.HTTP_OK
             else:
                 t = self.__backends[self.__env].get_tfstate()
+                print('IS THIS WHERE WE ARE GETTING THE b CHARACTER?', t)
                 return t, C.HTTP_OK
 
         @self.backend_service.route('/state', methods=['GET'])
