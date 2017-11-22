@@ -17,16 +17,32 @@ class GitBackend(TYLStore):
         self.tfstate_file_name = os.sep.join([self.working_dir, C.TFSTATE_FILE_NAME])
 
         self.repository = git.Git(self.working_dir)
+        logging.debug('zjfdsklfjslkdfjlasdkjflaskdjflaksdjflasd '+self.working_dir)
         self.__make_repo()
 
     def __make_repo(self):
         if not os.path.exists(self.working_dir):
             os.mkdir(self.working_dir, mode=0o700)
             self.repository.clone(C.GIT_REPOSITORY, self.working_dir)
+
+        # TODO: Seems to me there should be a way to get this from the self.respository variable.
+        branches = [h.name for h in git.Repo(self.working_dir).heads]
+        if self.ENV in branches:
+            self.repository.checkout(self.ENV)
+        else:
+            self.repository.checkout('origin/master', b=self.ENV)
         self.repository.pull()
 
     def set_locked(self, request):
+        import json
         # create lock file
+        lockfile = os.sep.join([self.working_dir, 'LOCKED'])
+        fout = open(lockfile, 'w')
+        fout.write(json.dumps(json.loads(request), indent=2))
+        fout.close()
+        self.repository.add(lockfile)
+        self.repository.commit(m='How locked? Land locked!')
+        self.repository.push('origin', self.ENV)
         # write request.data to file
         # commit/push lock file
         return True
