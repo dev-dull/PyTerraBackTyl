@@ -74,10 +74,23 @@ class GitBackend(TYLStore):
         return None
 
     def store_tfstate(self, tfstate_text):
+        self.repository.pull()
+
+        backup_file = self.tfstate_file_name+'.backup'
+        commit_files = [self.tfstate_file_name]
+        if os.path.exists(self.tfstate_file_name):
+            os.rename(self.tfstate_file_name, backup_file)
+            commit_files.append(backup_file)
         fout = open(self.tfstate_file_name, 'w')
         fout.write(tfstate_text)
         fout.close()
+
+        self.repository.add(commit_files)
+        self.repository.commit(m='got new tfstate')
+        self.repository.push('origin', self.ENV)
+
         logging.debug('Saved state file %s' % self.tfstate_file_name)
+
         print('Files:', self.tfstate_file_name)
 
     def get_tfstate(self):
