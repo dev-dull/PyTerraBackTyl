@@ -1,0 +1,33 @@
+## IP and ports to listen on. Defaults shown.
+## Authentication service is locked to localhost as it should only be used by PyTerraBackTyl
+# BACKEND_SERVICE_IP: '127.0.0.1'
+# BACKEND_SERVICE_PORT: 2442
+# AUTHENTICATION_SERVICE_PORT: 2443
+
+USE_AUTHENTICATION_SERVICE: false
+AUTHENTICATION_METHOD: ''
+
+BACKEND_PLUGINS_PATH: 'backends'
+BACKEND_CLASS: 'git_backend.GitBackend'
+
+LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
+
+##
+##  git_backend.GitBackend configuration
+##
+GIT_REPOSITORY: 'git@github.com:dev-dull/backend_test.git'
+
+## requried for ssh:// repo
+GIT_KEY_FILE: '~/.ssh/id_rsa'
+
+## required for https:// repo
+GIT_USERNAME: null
+GIT_PASSWORD: null
+
+# GIT_WORKING_PATH: '~/.pyterrabacktyl'
+GIT_DEFAULT_CLONE_BRANCH: 'origin/master'
+GIT_COMMIT_MESSAGE_FORMAT: '{Who}, {Operation} - {ID}'
+
+GIT_STATE_CHANGE_LOG_SCROLLBACK: 300
+GIT_STATE_CHANGE_LOG_FILENAME: 'state_change.log'
+GIT_STATE_CHANGE_LOG_FORMAT: '{Created} - {Operation}: {Who} {ID}'

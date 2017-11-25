@@ -2,13 +2,17 @@ import os
 import sys
 import json
 import logging
-import argparse
 import abc_tylstore
 
 from CONSTS import C
-from functools import wraps
 from flask import Flask, request
 from importlib import import_module
+
+
+class PyTerraBackTYLException(Exception):
+    S_IS_INVALID_SUBCLASS_TYPE = '%s is invalid subclass type. Did you specify the subclass in your backend module?'
+    S_IS_INVALID_LOCK_STATE = '%s is not a valid lock state.'
+    LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS = 'Lock state for ENV %s appears to have been changed out-of-process!'
 
 
 class PyTerraBackTYL(object):
@@ -33,15 +37,16 @@ class PyTerraBackTYL(object):
         class_parts = C.BACKEND_CLASS.split('.')
         _class = import_module(class_parts[0])
         for module_part in class_parts[1:]:
+            logging.debug('Attempting to import: %s' % module_part)
             _class = getattr(_class, module_part)
+        logging.debug('Successfully imported module %s' % C.BACKEND_CLASS)
 
         if _class.__name__ in [sc.__name__ for sc in abc_tylstore.TYLStore.__subclasses__()]:
             self.backend_class = _class
+            logging.debug('Successful subclass type validation of %s' % C.BACKEND_CLASS)
         else:
-            raise Exception('FOOBARed!')
-
-        def __just_testing():
-            logging.debug('\n'.join(['%s: %s' % (k, v) for (k, v) in request.values.items()]) or 'No post/get datat to unpack')
+            logging.error(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
+            raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
 
         def __set_lock_state(state, method_ok, state_ok):
             print('%s:' % state.upper(), request.data)
@@ -51,48 +56,61 @@ class PyTerraBackTYL(object):
                         self.__backends[self.__env].__lock_state__ = state
                         logging.debug('Lock state set to %s' % state)
                         return 'State is now %s' % state, C.HTTP_OK
-                    return 'Cannot change from state %s to %s' % (self.__backends[self.__env].__lock_state__, state), C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
-                return 'Invalid HTTP request method for state %s' % state, C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
+                    return 'Cannot change from state %s to %s' % (self.__backends[self.__env].__lock_state__, state), \
+                           C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
+                return 'Invalid HTTP request method for state %s' % state, \
+                       C.LOCK_STATES[self.__backends[self.__env].__lock_state__]
             else:
-                raise Exception('Yo, goofball! That is not a lock state!')  # TODO: real error message, exception type.
+                logging.error(PyTerraBackTYLException.S_IS_INVALID_LOCK_STATE % state)
+                raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_LOCK_STATE % state)
 
         @self.backend_service.route('/lock', methods=['LOCK', 'GET'])
         def tf_lock():
             self.set_env_from_url()
-            __just_testing()
             lock_status = __set_lock_state(C.LOCK_STATE_INIT, request.method == C.HTTP_METHOD_LOCK,
                                            self.__backends[self.__env].__lock_state__ == C.LOCK_STATE_UNLOCKED)
             if self.__backends[self.__env].set_locked(request.data.decode()):
                 self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_LOCKED
                 return lock_status
-            return self.__backends[self.__env].get_lock_state(), C.HTTP_LOCKED
+            # The only time we should get outside the 'if' statement is something else changing the lock state
+            # Whatever out-of-process change that locked the backend needs to be what unlocks it.
+            logging.error(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
+            raise PyTerraBackTYLException(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
+
+            # TODO: Remove this when we're satisfied that we can only get outside the 'if' with out-of-process change
+            # return self.__backends[self.__env].get_lock_state(), C.HTTP_ERROR
 
         @self.backend_service.route('/unlock', methods=['UNLOCK', 'GET'])
         def tf_unlock():
             self.set_env_from_url()
-            __just_testing()
             lock_status = __set_lock_state(C.LOCK_STATE_UNLOCKED, request.method == C.HTTP_METHOD_UNLOCK,
                                            self.__backends[self.__env].__lock_state__ in [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT])
 
             if self.__backends[self.__env].set_unlocked(request.data.decode()):
                 return lock_status
-            return 'Unlock failed.', C.HTTP_ERROR
+            # The only time we should get outside the 'if' statement is something else changing the lock state
+            # Whatever out-of-process change that unlocked the backend needs to knock it the fuck off.
+            logging.error(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
+            raise PyTerraBackTYLException(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
+
+            # TODO: Remove this when we're satisfied that we can only get outside the 'if' with out-of-process change
+            # return 'Unlock failed.', C.HTTP_ERROR
 
         @self.backend_service.route('/', methods=['GET', 'POST'])
         def tf_backend():
             self.set_env_from_url()
 
             if request.method == 'POST':
-                # TODO: decide if we really want to encode into utf-8
                 self.__backends[self.__env].store_tfstate(request.data.decode())
+                logging.info('Stored new tfstate for ENV %s from IP %s.' % (self.__env, request.remote_addr))
                 return 'alrighty!', C.HTTP_OK
             else:
                 t = self.__backends[self.__env].get_tfstate()
-                print('IS THIS WHERE WE ARE GETTING THE b CHARACTER?', t)
+                logging.info('Fetched tfstate for ENV %s from IP %s.' % (self.__env, request.remote_addr))
                 return t, C.HTTP_OK
 
         @self.backend_service.route('/state', methods=['GET'])
-        def state():
+        def service_state():
             # TODO: return legit values
             state = {'healthy': True,
                      'lock_state': self.__backends[self.__env].__lock_state__,
@@ -103,6 +121,9 @@ class PyTerraBackTYL(object):
         # TODO: Put some auth around forcing this to stop.
         # @self.backend_service.route('/shutdown')
         # def shutdown():
+        #  Check if any repos are locked
+        #  call the __backends.cleanup() functions
+        #  bail out.
         #     func = request.environ.get('werkzeug.server.shutdown')
         #     if func is None:
         #         raise RuntimeError('Not running with the Werkzeug Server')
@@ -118,9 +139,9 @@ class PyTerraBackTYL(object):
         # TODO: currently looking at both GET and POST values. Maybe only GET makes sense here.
         self.__env = request.values['env'] if 'env' in request.values else ''
         if self.__env not in self.__backends:
-            self.__backends[self.__env] = self.backend_class(self.__env)
+            self.__backends[self.__env] = self.backend_class(self.__env, C)
 
 
 if __name__ == '__main__':
-    logging.getLogger('').setLevel(logging.DEBUG)
+    logging.getLogger('').setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
     PyTerraBackTYL().backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)

@@ -9,10 +9,6 @@ class C(object):
     #  ONLY SET VALUES HERE THAT SHOULD BE ALLOWED TO BE OVERRIDDEN IN consts.yaml
     #
     ####################################################################################################################
-    GIT_REPOSITORY = None
-    GIT_KEY_FILE = '~/.ssh/id_rsa'
-    GIT_USERNAME = None
-    GIT_PASSWORD = None
 
     # When false, use GitLab/Hub authentication???
     USE_AUTHENTICATION_SERVICE = True
@@ -22,10 +18,10 @@ class C(object):
     AUTHENTICATION_SERVICE_PORT = 2443
     SSL_CERTIFICATE_PATH = '/SOME/PATH/TBD.key'  # TODO: http://flask.pocoo.org/snippets/111/
 
-    GIT_WORKING_PATH = None
-
     BACKEND_PLUGINS_PATH = 'backends'
     BACKEND_CLASS = 'git_backend.GitBackend'
+
+    LOG_LEVEL = 'INFO'
 
     # Declaring that these things exist so the IDE can find them without complaining. Values are populated below.
     AUTHENTICATION_SERVICE_IP = None
@@ -49,7 +45,7 @@ class C(object):
 
 
 # Override the constant values, set user specified constants.
-load_from_yaml('consts.yaml', C)
+load_from_yaml('config.yaml', C)
 
 
 ########################################################################################################################
