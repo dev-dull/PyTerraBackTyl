@@ -4,15 +4,23 @@ import json
 import logging
 import tempfile
 from abc_tylstore import TYLStore
+from collections import defaultdict
 
 
 class GitBackend(TYLStore):
-    def __init__(self, environment, constsants):
+    def __init__(self, environment, constants):
         self.new_branch = False
-        self.C = constsants
+        self.C = constants
         self.ENV = environment if environment else self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
+        self.push_origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
 
-        self.working_dir = self.C.GIT_WORKING_PATH or tempfile.mkdtemp()
+        # I don't like keeping this here, but this info isn't sent with the current tfstate
+        # and I want to keep the commit messages relevant to who has the current lock.
+        self.lock_commit_msg = ''
+
+        # The calls to tempfile.mkdtemp() looks redundant here, but this handles the cases where
+        # GIT_WORKING_PATH is None or not configured.
+        self.working_dir = getattr(self.C, 'GIT_WORKING_PATH', tempfile.mkdtemp()) or tempfile.mkdtemp()
         if self.working_dir.endswith(os.sep):
             self.working_dir = self.working_dir[0:-1]
         self.working_dir = os.sep.join([self.working_dir, self.ENV])
@@ -59,8 +67,9 @@ class GitBackend(TYLStore):
 
         self._update_log(json_obj)
         self.repository.add([self.lockfile, self.logfile])
-        self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**json_obj))
-        self.repository.push('origin', self.ENV)
+        self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj))
+        self.repository.commit(m=self.lock_commit_msg)
+        self.repository.push(self.push_origin, self.ENV)
         # write request.data to file
         # commit/push lock file
         return True
@@ -72,17 +81,31 @@ class GitBackend(TYLStore):
             self._update_log(json_obj)
             self.repository.rm(self.lockfile)
             self.repository.add(self.logfile)
-            self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**json_obj))
-            self.repository.push('origin', self.ENV)
+            # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
+            self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj)))
+            self.repository.push(self.push_origin, self.ENV)
             return True
         logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
         return False
 
     def _update_log(self, json_obj):
-        scrollback = -1 * abs(int(self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK))
-        foutin = open(self.logfile, 'rw')
-        log_lines = foutin.read().splitlines()[scrollback:]
-        log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**json_obj))
+        try:
+            scrollback = -1 * abs(int(self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK))
+        except ValueError:
+            logging.error('Scrollback value %s is not an integer. Using 300.' % self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK)
+            scrollback = 300
+
+        if os.path.exists(self.logfile):
+            foutin = open(self.logfile, 'r+')
+            log_lines = foutin.read().splitlines()[scrollback:]
+            foutin.seek(0)
+        else:
+            foutin = open(self.logfile, 'w')
+            log_lines = []
+
+        foutin.seek(0)
+        # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
+        log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
         foutin.write('\n'.join(log_lines))
         foutin.close()
         del foutin
@@ -111,14 +134,16 @@ class GitBackend(TYLStore):
         fout.close()
 
         self.repository.add(commit_files)
-        self.repository.commit(m='got new tfstate')
-        self.repository.push('origin', self.ENV)
+        self.repository.commit(m=self.lock_commit_msg)
+        self.repository.push(self.push_origin, self.ENV)
 
         logging.debug('Saved state file %s' % self.tfstate_file_name)
 
         print('Files:', self.tfstate_file_name)
 
     def get_tfstate(self):
+        self.repository.pull()
+
         try:
             logging.debug('Reading state file %s' % self.tfstate_file_name)
             fin = open(self.tfstate_file_name, 'r')

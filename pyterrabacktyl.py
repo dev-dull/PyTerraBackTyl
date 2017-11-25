@@ -49,7 +49,6 @@ class PyTerraBackTYL(object):
             raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
 
         def __set_lock_state(state, method_ok, state_ok):
-            print('%s:' % state.upper(), request.data)
             if state in C.LOCK_STATES.keys():
                 if method_ok:
                     if state_ok:
@@ -136,7 +135,7 @@ class PyTerraBackTYL(object):
             return 'oh, snap. It done gone broked.', 404
 
     def set_env_from_url(self):
-        # TODO: currently looking at both GET and POST values. Maybe only GET makes sense here.
+        # Looking at both GET and POST values.
         self.__env = request.values['env'] if 'env' in request.values else ''
         if self.__env not in self.__backends:
             self.__backends[self.__env] = self.backend_class(self.__env, C)
