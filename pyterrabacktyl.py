@@ -73,6 +73,7 @@ class PyTerraBackTYL(object):
                 return lock_status
             # The only time we should get outside the 'if' statement is something else changing the lock state
             # Whatever out-of-process change that locked the backend needs to be what unlocks it.
+            # TODO: Stay in bad state? Revert back to unlocked. Everything is fucked anyway, so leaving it for now.
             logging.error(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
             raise PyTerraBackTYLException(PyTerraBackTYLException.LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS % self.__env)
 
