@@ -39,7 +39,8 @@ terraform {
   }
 }
 ```
-- SUPER IMPORTANT CRITICAL READ THIS: Note the `?env=SOME_ENVIRONMENT` at the end of the url. This is how PyTerraBackTYL identifies separate projects. There's no guardrails around this. **Make sure this value is unique for each seaparate environemnt!**
+- **WARNING**: Note the `?env=SOME_ENVIRONMENT` at the end of the url. This is how PyTerraBackTYL identifies separate projects. There's no guardrails around this. **Make sure this value is unique for each seaparate environemnt!**
+- Rerun `terraform init` to use the backend service. Say 'yes' at the prompt if you wish to copy the existing terraform.tfstate file to the HTTP backend.
 
 ## But I don't want to use Git as a backend:
 That's fine. Subclass `abc_tylstore.TYLStore`, implement the required functions, drop your module into the `backends` directory, update your `config.yaml` to point at your new module, and try not to break production in the process of testing.
