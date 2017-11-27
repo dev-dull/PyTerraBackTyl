@@ -52,6 +52,8 @@ class GitBackend(TYLStore):
         self.repository.pull()
 
     def set_locked(self, request):
+        # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
+
         self.repository.pull()
 
         if os.path.exists(self.lockfile):

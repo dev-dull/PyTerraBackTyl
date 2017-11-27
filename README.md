@@ -95,6 +95,9 @@ to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBa
   - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`) 
   - Check if a keypair already exists: `ls -lah ~/.ssh`
   - Generate a keypair if needed: `ssh-keygen -t rsa` leave all prompts empty by pressing enter until the command completes.
+- Set the git global config for the tfbackendsvc user:
+  - `git config --global user.email "you@example.com"`
+  - `git config --global user.name "Your Name"`
 - Create a new Git repository.
   - **WARNING**: Make this repository private as `terraform.tfstate` files can contain sensitive information about your infrastructure.
   - This process will vary between various Git services (GitHub, GitLab, et. al.)
