@@ -2,10 +2,6 @@
 ## Authentication service is locked to localhost as it should only be used by PyTerraBackTyl
 # BACKEND_SERVICE_IP: '127.0.0.1'
 # BACKEND_SERVICE_PORT: 2442
-# AUTHENTICATION_SERVICE_PORT: 2443
-
-USE_AUTHENTICATION_SERVICE: false
-AUTHENTICATION_METHOD: ''
 
 BACKEND_PLUGINS_PATH: 'backends'
 BACKEND_CLASS: 'git_backend.GitBackend'
