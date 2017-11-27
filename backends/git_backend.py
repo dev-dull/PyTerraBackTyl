@@ -49,12 +49,12 @@ class GitBackend(TYLStore):
             self.new_branch = True
             self.repository.checkout(self.C.GIT_DEFAULT_CLONE_BRANCH, b=self.ENV)
             logging.info('Created new branch %s.' % self.ENV)
-        self.repository.pull()
+        self.repository.fetch('-p')
 
     def set_locked(self, request):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
 
-        self.repository.pull()
+        self.repository.fetch('-p')
 
         if os.path.exists(self.lockfile):
             logging.warning('Failed to obtain lock for ENV %s, already locked: %s' % (self.ENV, self.lockfile))
@@ -77,7 +77,7 @@ class GitBackend(TYLStore):
         return True
 
     def set_unlocked(self, request):
-        self.repository.pull()
+        self.repository.fetch('-p')
         if os.path.exists(self.lockfile):
             json_obj = json.loads(request)
             self._update_log(json_obj)
@@ -113,7 +113,7 @@ class GitBackend(TYLStore):
         del foutin
 
     def get_lock_state(self):
-        self.repository.pull()
+        self.repository.fetch('-p')
         if os.path.exists(self.lockfile):
             fin = open(self.lockfile, 'r')
             state = fin.read()
@@ -123,7 +123,7 @@ class GitBackend(TYLStore):
         return None
 
     def store_tfstate(self, tfstate_text):
-        self.repository.pull()
+        self.repository.fetch('-p')
 
         backup_file = self.tfstate_file_name+'.backup'
         commit_files = [self.tfstate_file_name]
@@ -144,7 +144,7 @@ class GitBackend(TYLStore):
         print('Files:', self.tfstate_file_name)
 
     def get_tfstate(self):
-        self.repository.pull()
+        self.repository.fetch('-p')
 
         try:
             logging.debug('Reading state file %s' % self.tfstate_file_name)
