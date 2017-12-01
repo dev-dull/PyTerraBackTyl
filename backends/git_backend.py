@@ -50,6 +50,8 @@ class GitBackend(TYLStore):
             self.repository.checkout(self.C.GIT_DEFAULT_CLONE_BRANCH, b=self.ENV)
             logging.info('Created new branch %s.' % self.ENV)
         self.repository.pull()
+        self.repository.branch(d='master')  # Delete the LOCAL copy of the 'master' branch
+                                            # Hopefully this'll surppress 'X commits of head of master' warnings.
 
     def set_locked(self, request):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
@@ -70,7 +72,7 @@ class GitBackend(TYLStore):
         self._update_log(json_obj)
         self.repository.add([self.lockfile, self.logfile])
         self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj))
-        self.repository.commit(m=self.lock_commit_msg)
+        self.repository.commit(m=self.lock_commit_msg or 'FORCED CHANGE')
         self.repository.push(self.push_origin, self.ENV)
         # write request.data to file
         # commit/push lock file
@@ -108,7 +110,7 @@ class GitBackend(TYLStore):
         foutin.seek(0)
         # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
         log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
-        foutin.write('\n'.join(log_lines))
+        foutin.write('\n'.join(log_lines) + '\n')
         foutin.close()
         del foutin
 
@@ -120,7 +122,7 @@ class GitBackend(TYLStore):
             fin.close()
             logging.debug('Returning locked state %s' % state)
             return state
-        return None
+        return ''
 
     def store_tfstate(self, tfstate_text):
         self.repository.pull()
@@ -140,8 +142,6 @@ class GitBackend(TYLStore):
         self.repository.push(self.push_origin, self.ENV)
 
         logging.debug('Saved state file %s' % self.tfstate_file_name)
-
-        print('Files:', self.tfstate_file_name)
 
     def get_tfstate(self):
         self.repository.pull()
