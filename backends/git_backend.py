@@ -49,12 +49,14 @@ class GitBackend(TYLStore):
             self.new_branch = True
             self.repository.checkout(self.C.GIT_DEFAULT_CLONE_BRANCH, b=self.ENV)
             logging.info('Created new branch %s.' % self.ENV)
-        self.repository.fetch('-p')
+        self.repository.pull()
+        self.repository.branch(d='master')  # Delete the LOCAL copy of the 'master' branch
+                                            # Hopefully this'll surppress 'X commits of head of master' warnings.
 
     def set_locked(self, request):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
 
-        self.repository.fetch('-p')
+        self.repository.pull()
 
         if os.path.exists(self.lockfile):
             logging.warning('Failed to obtain lock for ENV %s, already locked: %s' % (self.ENV, self.lockfile))
@@ -70,14 +72,14 @@ class GitBackend(TYLStore):
         self._update_log(json_obj)
         self.repository.add([self.lockfile, self.logfile])
         self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj))
-        self.repository.commit(m=self.lock_commit_msg)
+        self.repository.commit(m=self.lock_commit_msg or 'FORCED CHANGE')
         self.repository.push(self.push_origin, self.ENV)
         # write request.data to file
         # commit/push lock file
         return True
 
     def set_unlocked(self, request):
-        self.repository.fetch('-p')
+        self.repository.pull()
         if os.path.exists(self.lockfile):
             json_obj = json.loads(request)
             self._update_log(json_obj)
@@ -108,22 +110,22 @@ class GitBackend(TYLStore):
         foutin.seek(0)
         # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
         log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
-        foutin.write('\n'.join(log_lines))
+        foutin.write('\n'.join(log_lines) + '\n')
         foutin.close()
         del foutin
 
     def get_lock_state(self):
-        self.repository.fetch('-p')
+        self.repository.pull()
         if os.path.exists(self.lockfile):
             fin = open(self.lockfile, 'r')
             state = fin.read()
             fin.close()
             logging.debug('Returning locked state %s' % state)
             return state
-        return None
+        return ''
 
     def store_tfstate(self, tfstate_text):
-        self.repository.fetch('-p')
+        self.repository.pull()
 
         backup_file = self.tfstate_file_name+'.backup'
         commit_files = [self.tfstate_file_name]
@@ -141,10 +143,8 @@ class GitBackend(TYLStore):
 
         logging.debug('Saved state file %s' % self.tfstate_file_name)
 
-        print('Files:', self.tfstate_file_name)
-
     def get_tfstate(self):
-        self.repository.fetch('-p')
+        self.repository.pull()
 
         try:
             logging.debug('Reading state file %s' % self.tfstate_file_name)
