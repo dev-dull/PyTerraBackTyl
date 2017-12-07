@@ -20,6 +20,7 @@ class C(object):
 
     BACKEND_PLUGINS_PATH = 'backends'
     BACKEND_CLASS = 'git_backend.GitBackend'
+    POST_PROCESS_CLASSES = []
 
     LOG_LEVEL = 'INFO'
 

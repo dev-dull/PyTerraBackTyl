@@ -2,7 +2,7 @@ import abc
 from CONSTS import C
 
 
-class TYLStore(object):
+class TYLPersistant(object):
     __metaclass__ = abc.ABCMeta
     __lock_state__ = C.LOCK_STATE_UNLOCKED
 
@@ -40,5 +40,32 @@ class TYLStore(object):
     def get_tfstate(self):
         """
         :return: JSON string of the current terraform.tfstate file.
+        """
+        pass
+
+
+class TYLNonpersistant(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def on_locked(self, request):
+        """
+        :param request: JSON string with the lock ID and details of who made the lock.
+        :return: None
+        """
+        pass
+
+    @abc.abstractmethod
+    def on_unlocked(self, request):
+        """
+        :param request: JSON string with the lock ID and details of who made the lock.
+        """
+        pass
+
+    @abc.abstractmethod
+    def process_tfstate(self, tfstate_text):
+        """
+        :param tfstate_text: JSON string of the current terraform.tfstate file.
+        :return:
         """
         pass

@@ -5,6 +5,7 @@ import logging
 import abc_tylstore
 
 from CONSTS import C
+from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
@@ -22,30 +23,19 @@ class PyTerraBackTYL(object):
         # TODO: thread-safe this variable
         self.__env = None
         self.__backends = {}
+        self.__post_processors = {}
         self.backend_service = Flask('PyTerraBackTyl')
+        self.backend_class = self.__load_class(C.BACKEND_CLASS, abc_tylstore.TYLPersistant)
 
-        path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
-        paths = path_type([os.sep.join(abc_tylstore.__file__.split(os.sep)[0:-1])])
-        if isinstance(C.BACKEND_PLUGINS_PATH, str):
-            C.BACKEND_PLUGINS_PATH = path_type([C.BACKEND_PLUGINS_PATH])
+        if C.POST_PROCESS_CLASSES:
+            if isinstance(C.POST_PROCESS_CLASSES, str):
+                C.POST_PROCESS_CLASSES = [C.POST_PROCESS_CLASSES]
+            elif not isinstance(C.POST_PROCESS_CLASSES, Iterable):
+                raise Exception('fuck')
         else:
-            C.BACKEND_PLUGINS_PATH = path_type(C.BACKEND_PLUGINS_PATH)
-        paths += sys.path + C.BACKEND_PLUGINS_PATH
-        sys.path = path_type(set(paths))
+            C.POST_PROCESS_CLASSES = []
 
-        class_parts = C.BACKEND_CLASS.split('.')
-        _class = import_module(class_parts[0])
-        for module_part in class_parts[1:]:
-            logging.debug('Attempting to import: %s' % module_part)
-            _class = getattr(_class, module_part)
-        logging.debug('Successfully imported module %s' % C.BACKEND_CLASS)
-
-        if _class.__name__ in [sc.__name__ for sc in abc_tylstore.TYLStore.__subclasses__()]:
-            self.backend_class = _class
-            logging.debug('Successful subclass type validation of %s' % C.BACKEND_CLASS)
-        else:
-            logging.error(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
-            raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
+        self.post_process_classes = [self.__load_class(c, abc_tylstore.TYLNonpersistant) for c in C.POST_PROCESS_CLASSES]
 
         def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
             self.set_env_from_url()
@@ -73,6 +63,12 @@ class PyTerraBackTYL(object):
                                     C.HTTP_METHOD_LOCK, self.__backends[self.__env].set_locked)
 
             # TODO: Process the plugins that are enabled, but not handling locking.
+            for pp in self.__post_processors[self.__env]:
+                try:
+                    pp.on_locked(request.data.decode())
+                except Exception as e:
+                    logging.error(e)
+
 
             return state
 
@@ -82,6 +78,11 @@ class PyTerraBackTYL(object):
                                     C.HTTP_METHOD_UNLOCK, self.__backends[self.__env].set_unlocked)
 
             # TODO: Process the plugins that are enabled, but not handling locking.
+            for pp in self.__post_processors[self.__env]:
+                try:
+                    pp.on_unlocked(request.data.decode())
+                except Exception as e:
+                    logging.error(e)
 
             return state
 
@@ -90,8 +91,16 @@ class PyTerraBackTYL(object):
             self.set_env_from_url()
 
             if request.method == 'POST':
-                self.__backends[self.__env].store_tfstate(request.data.decode())
+                data = request.data.decode()
+                self.__backends[self.__env].store_tfstate(data)
                 logging.info('Stored new tfstate for ENV %s from IP %s.' % (self.__env, request.remote_addr))
+
+                for pp in self.__post_processors[self.__env]:
+                    try:
+                        pp.process_tfstate(data)
+                    except Exception as e:
+                        logging.error(e)
+
                 return 'alrighty!', C.HTTP_OK
             else:
                 t = self.__backends[self.__env].get_tfstate()
@@ -128,6 +137,33 @@ class PyTerraBackTYL(object):
         self.__env = request.values['env'] if 'env' in request.values else ''
         if self.__env not in self.__backends:
             self.__backends[self.__env] = self.backend_class(self.__env, C)
+            self.__post_processors[self.__env] = [f(self.__env, C) for f in self.post_process_classes]
+
+    @staticmethod
+    def __load_class(class_name, superclass):
+        path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
+        paths = path_type([os.sep.join(abc_tylstore.__file__.split(os.sep)[0:-1])])
+        if isinstance(C.BACKEND_PLUGINS_PATH, str):
+            C.BACKEND_PLUGINS_PATH = path_type([C.BACKEND_PLUGINS_PATH])
+        else:
+            C.BACKEND_PLUGINS_PATH = path_type(C.BACKEND_PLUGINS_PATH)
+        paths += sys.path + C.BACKEND_PLUGINS_PATH
+        sys.path = path_type(set(paths))
+
+        # class_parts = C.BACKEND_CLASS.split('.')
+        class_parts = class_name.split('.')
+        _class = import_module(class_parts[0])
+        for module_part in class_parts[1:]:
+            logging.debug('Attempting to import: %s' % module_part)
+            _class = getattr(_class, module_part)
+        logging.debug('Successfully imported module %s' % class_name)
+
+        if _class.__name__ in [sc.__name__ for sc in superclass.__subclasses__()]:
+            logging.debug('Successful subclass type validation of %s' % C.BACKEND_CLASS)
+            return _class
+        else:
+            logging.error(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
+            raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
 
 
 if __name__ == '__main__':
