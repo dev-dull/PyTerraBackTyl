@@ -15,6 +15,8 @@ class PyTerraBackTYLException(Exception):
     S_IS_INVALID_LOCK_STATE = '%s is not a valid lock state.'
     LOCK_STATE_FOR_S_CHANGED_OUT_OF_PROCESS = 'Lock state for ENV %s appears to have been changed out-of-process!'
 
+    POST_PROCESSING_CLASS_SHOULD_BE_GOT_S = 'Expected list of strings for postprocessing class names. Got: %s'
+
 
 class PyTerraBackTYL(object):
     # Forcing flask into a class for no other reason than I want to avoid using the 'global' keyword.
@@ -31,7 +33,7 @@ class PyTerraBackTYL(object):
             if isinstance(C.POST_PROCESS_CLASSES, str):
                 C.POST_PROCESS_CLASSES = [C.POST_PROCESS_CLASSES]
             elif not isinstance(C.POST_PROCESS_CLASSES, Iterable):
-                raise Exception('fuck')
+                raise PyTerraBackTYLException(PyTerraBackTYLException.POST_PROCESSING_CLASS_SHOULD_BE_GOT_S % type(C.POST_PROCESS_CLASSES))
         else:
             C.POST_PROCESS_CLASSES = []
 
