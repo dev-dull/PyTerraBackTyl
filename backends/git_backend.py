@@ -10,7 +10,6 @@ from abc_tylstore import TYLPersistant
 
 class GitBackend(TYLPersistant):
     def __init__(self, environment, constants):
-        self.new_branch = False
         self.C = constants
         self.ENV = environment if environment else self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
         self.push_origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
@@ -47,9 +46,10 @@ class GitBackend(TYLPersistant):
             self.repository.checkout(self.ENV)
             logging.debug('Checked out existing branch %s' % self.ENV)
         else:
-            self.new_branch = True
             self.repository.checkout(self.C.GIT_DEFAULT_CLONE_BRANCH, b=self.ENV)
             logging.info('Created new branch %s.' % self.ENV)
+            self.lock_commit_msg = 'init commit'
+            self.store_tfstate('')
         self.repository.pull()
         self.repository.branch(d='master')  # Delete the LOCAL copy of the 'master' branch
                                             # Hopefully this'll surppress 'X commits of head of master' warnings.
@@ -154,7 +154,4 @@ class GitBackend(TYLPersistant):
             fin.close()
             return tfstate
         except Exception as e:
-            if self.new_branch:
-                logging.info('Reading state file failed. "%s" appears to be a new ENV. Using empty string.' % self.ENV)
-                return ''
             raise e
