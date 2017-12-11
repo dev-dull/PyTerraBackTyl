@@ -1,3 +1,4 @@
 consts.yaml
 __pycache__
 .idea
+*.pyc
