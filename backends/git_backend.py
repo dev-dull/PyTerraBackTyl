@@ -3,11 +3,12 @@ import git
 import json
 import logging
 import tempfile
-from abc_tylstore import TYLStore
+
 from collections import defaultdict
+from abc_tylstore import TYLPersistant
 
 
-class GitBackend(TYLStore):
+class GitBackend(TYLPersistant):
     def __init__(self, environment, constants):
         self.new_branch = False
         self.C = constants
@@ -29,7 +30,7 @@ class GitBackend(TYLStore):
         self.logfile = os.sep.join([self.working_dir, self.C.GIT_STATE_CHANGE_LOG_FILENAME])
 
         self.repository = git.Git(self.working_dir)
-        logging.debug('Git working directory for ENV %s: %s ' % (self.ENV, self.working_dir))
+        logging.info('Git working directory for ENV %s: %s ' % (self.ENV, self.working_dir))
         self.__make_repo()
 
     def __make_repo(self):
