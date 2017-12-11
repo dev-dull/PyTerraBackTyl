@@ -62,7 +62,8 @@ class PyTerraBackTYL(object):
             state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
                                     C.HTTP_METHOD_LOCK, self.__backends[self.__env].set_locked)
 
-            # TODO: Process the plugins that are enabled, but not handling locking.
+            # TODO: This code block effectively exists in 3 places -- make it a function (1 of 3)
+            # Process the nonpersistant plugins (enabled, but not handling locking).
             for pp in self.__post_processors[self.__env]:
                 try:
                     pp.on_locked(request.data.decode())
@@ -77,7 +78,8 @@ class PyTerraBackTYL(object):
             state = _set_lock_state(C.LOCK_STATE_UNLOCKED, [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT],
                                     C.HTTP_METHOD_UNLOCK, self.__backends[self.__env].set_unlocked)
 
-            # TODO: Process the plugins that are enabled, but not handling locking.
+            # TODO: This code block effectively exists in 3 places -- make it a function (2 of 3)
+            # Process the nonpersistant plugins (enabled, but not handling locking).
             for pp in self.__post_processors[self.__env]:
                 try:
                     pp.on_unlocked(request.data.decode())
@@ -95,6 +97,8 @@ class PyTerraBackTYL(object):
                 self.__backends[self.__env].store_tfstate(data)
                 logging.info('Stored new tfstate for ENV %s from IP %s.' % (self.__env, request.remote_addr))
 
+                # TODO: This code block effectively exists in 3 places -- make it a function (3 of 3)
+                # Process the nonpersistant plugins (enabled, but not handling locking).
                 for pp in self.__post_processors[self.__env]:
                     try:
                         pp.process_tfstate(data)
