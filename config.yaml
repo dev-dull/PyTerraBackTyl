@@ -9,8 +9,7 @@ AUTHENTICATION_METHOD: ''
 
 BACKEND_PLUGINS_PATH: 'backends'
 BACKEND_CLASS: 'git_backend.GitBackend'
-POST_PROCESS_CLASSES:
-  - 'zenoss_post_processor.ZenossPostProcessor'
+POST_PROCESS_CLASSES: []
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
 
