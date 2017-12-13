@@ -7,6 +7,8 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistant
 
+__version__ = '1.0.3'
+
 
 class GitBackend(TYLPersistant):
     def __init__(self, environment, constants):
