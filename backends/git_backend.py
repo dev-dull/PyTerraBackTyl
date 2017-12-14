@@ -53,8 +53,10 @@ class GitBackend(TYLPersistant):
             self.lock_commit_msg = 'init commit'
             self.store_tfstate('')
         self.repository.pull()
-        self.repository.branch(d='master')  # Delete the LOCAL copy of the 'master' branch
-                                            # Hopefully this'll surppress 'X commits of head of master' warnings.
+
+        # Delete the LOCAL copy of the 'master' branch
+        # Hopefully this'll suppress 'X commits of head of master' warnings.
+        self.repository.branch(d=self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1])
 
     def set_locked(self, request):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
