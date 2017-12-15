@@ -7,19 +7,20 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistant
 
-__version__ = '1.0.3'
+__version__ = '1.1.0'
 
 
 class GitBackend(TYLPersistant):
-    def __init__(self, environment, constants):
+    def __init__(self, environment, constants, parent):
         self.C = constants
         self.ENV = environment if environment else self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
-        self.push_origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
+        self.parent = parent
 
         # I don't like keeping this here, but this info isn't sent with the current tfstate
         # and I want to keep the commit messages relevant to who has the current lock.
         self.lock_commit_msg = ''
 
+        self.push_origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
         # The calls to tempfile.mkdtemp() looks redundant here, but this handles the cases where
         # GIT_WORKING_PATH is None or not configured.
         self.working_dir = getattr(self.C, 'GIT_WORKING_PATH', tempfile.mkdtemp()) or tempfile.mkdtemp()
@@ -58,7 +59,7 @@ class GitBackend(TYLPersistant):
         # Hopefully this'll suppress 'X commits of head of master' warnings.
         self.repository.branch(d=self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1])
 
-    def set_locked(self, request):
+    def set_locked(self, state_obj, **kwargs):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
 
         self.repository.pull()
@@ -69,29 +70,26 @@ class GitBackend(TYLPersistant):
 
         logging.info('Locking ENV %s: file is %s' % (self.ENV, self.lockfile))
         fout = open(self.lockfile, 'w')
-        json_obj = json.loads(request)
-        fout.write(json.dumps(json_obj, indent=2))
+        fout.write(json.dumps(state_obj, indent=2))
         fout.close()
         del fout
 
-        self._update_log(json_obj)
+        self._update_log(state_obj)
         self.repository.add([self.lockfile, self.logfile])
-        self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj))
+        self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj))
         self.repository.commit(m=self.lock_commit_msg or 'FORCED CHANGE')
         self.repository.push(self.push_origin, self.ENV)
-        # write request.data to file
-        # commit/push lock file
+
         return True
 
-    def set_unlocked(self, request):
+    def set_unlocked(self, state_obj, **kwargs):
         self.repository.pull()
         if os.path.exists(self.lockfile):
-            json_obj = json.loads(request)
-            self._update_log(json_obj)
+            self._update_log(state_obj)
             self.repository.rm(self.lockfile)
             self.repository.add(self.logfile)
             # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
-            self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, json_obj)))
+            self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj)))
             self.repository.push(self.push_origin, self.ENV)
             return True
         logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
@@ -129,7 +127,7 @@ class GitBackend(TYLPersistant):
             return state
         return ''
 
-    def store_tfstate(self, tfstate_text):
+    def store_tfstate(self, state_obj, **kwargs):
         self.repository.pull()
 
         backup_file = self.tfstate_file_name+'.backup'
@@ -139,7 +137,7 @@ class GitBackend(TYLPersistant):
             os.rename(self.tfstate_file_name, backup_file)
             commit_files.append(backup_file)
         fout = open(self.tfstate_file_name, 'w')
-        fout.write(tfstate_text)
+        fout.write(kwargs['raw'])
         fout.close()
 
         self.repository.add(commit_files)
