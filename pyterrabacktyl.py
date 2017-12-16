@@ -45,6 +45,7 @@ class PyTerraBackTYL(object):
         self.post_process_classes = [self.__load_class(c, abc_tylstore.TYLNonpersistant) for c in C.POST_PROCESS_CLASSES]
 
         def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
+            # TODO: `terraform force-unlock <ID>` doesn't work.
             self.set_env_from_url()
             if new_state in C.LOCK_STATES.keys():
                 if request.method == accepted_method:

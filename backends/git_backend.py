@@ -52,7 +52,7 @@ class GitBackend(TYLPersistant):
             self.repository.checkout(self.C.GIT_DEFAULT_CLONE_BRANCH, b=self.ENV)
             logging.info('Created new branch %s.' % self.ENV)
             self.lock_commit_msg = 'init commit'
-            self.store_tfstate('')
+            self.store_tfstate('', raw='')
         self.repository.pull()
 
         # Delete the LOCAL copy of the 'master' branch
