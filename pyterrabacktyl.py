@@ -31,6 +31,7 @@ class PyTerraBackTYL(object):
         self.__env = None
         self.__backends = {}
         self.__post_processors = {}
+        self.__allow_lock = True
         self.backend_service = Flask('PyTerraBackTyl')
         self.backend_class = self.__load_class(C.BACKEND_CLASS, abc_tylstore.TYLPersistant)
 
@@ -68,20 +69,24 @@ class PyTerraBackTYL(object):
 
         @self.backend_service.route('/lock', methods=[C.HTTP_METHOD_LOCK, C.HTTP_METHOD_GET])
         def tf_lock():
-            state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
-                                    C.HTTP_METHOD_LOCK, self.__backends[self.__env].set_locked)
+            if self.__allow_lock:
+                state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
+                                        C.HTTP_METHOD_LOCK, self.__backends[self.__env].set_locked)
 
-            # TODO: This code block effectively exists in 3 places -- make it a function (1 of 3)
-            # Process the nonpersistant plugins (enabled, but not handling locking).
-            lock_text = request.data.decode()
-            for pp in self.__post_processors[self.__env]:
-                try:
-                    pp.on_locked(json.loads(lock_text), raw=lock_text)
-                except Exception as e:
-                    logging.error(e)
+                # TODO: This code block effectively exists in 3 places -- make it a function (1 of 3)
+                # Process the nonpersistant plugins (enabled, but not handling locking).
+                lock_text = request.data.decode()
+                for pp in self.__post_processors[self.__env]:
+                    try:
+                        pp.on_locked(json.loads(lock_text), raw=lock_text)
+                    except Exception as e:
+                        pp.__logged_errors__ += 1
+                        pp.__recent_error__ = str(e)
+                        logging.error('%s: %s' % (pp.__class__.__name__, e))
 
-
-            return state
+                return state
+            # Backend is shutting down. Return a 202 to say we got the request, but didn't do anything with it.
+            return 'Backend service is shutting down.', C.HTTP_ACCEPTED
 
         @self.backend_service.route('/unlock', methods=[C.HTTP_METHOD_UNLOCK, C.HTTP_METHOD_GET])
         def tf_unlock():
@@ -95,7 +100,9 @@ class PyTerraBackTYL(object):
                 try:
                     pp.on_unlocked(json.loads(lock_text), raw=lock_text)
                 except Exception as e:
-                    logging.error(e)
+                    pp.__logged_errors__ += 1
+                    pp.__recent_error__ = str(e)
+                    logging.error('%s: %s' % (pp.__class__.__name__, e))
 
             return state
 
@@ -115,7 +122,9 @@ class PyTerraBackTYL(object):
                     try:
                         pp.process_tfstate(state_obj, raw=state_text)
                     except Exception as e:
-                        logging.error(e)
+                        pp.__logged_errors__ += 1
+                        pp.__recent_error__ = str(e)
+                        logging.error('%s: %s' % (pp.__class__.__name__, e))
 
                 return 'alrighty!', C.HTTP_OK
             else:
@@ -125,24 +134,51 @@ class PyTerraBackTYL(object):
 
         @self.backend_service.route('/state', methods=['GET'])
         def service_state():
-            # TODO: return legit values
-            state = {'healthy': True,
-                     'lock_state': self.__backends[self.__env].__lock_state__,
-                     'http_code': C.LOCK_STATES[self.__backends[self.__env].__lock_state__],
-                     'auth_service': C.USE_AUTHENTICATION_SERVICE}
-            return json.dumps(state, indent=2)
+            state = {
+                    C.TYL_KEYWORD_BACKEND_MODULE: C.BACKEND_CLASS,
+                    C.TYL_KEYWORD_POST_PROCESSOR_MODULES: C.POST_PROCESS_CLASSES,
+                    C.TYL_KEYWORD_BACKEND: {
+                        C.TYL_KEYWORD_ENVIRONMENTS: []
+                        },
+                    C.TYL_KEYWORD_POST_PROCESSORS: []
+                    }
+
+            for env, backend in self.__backends.items():
+                state[C.TYL_KEYWORD_BACKEND][C.TYL_KEYWORD_ENVIRONMENTS].append(
+                    {
+                        C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
+                        C.TYL_KEYWORD_LOCK_STATE: backend.__lock_state__,
+                        C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend.__lock_state__],
+                    }
+                )
+
+            for env, post_processor in self.__post_processors.items():
+                for pp in post_processor:
+                    state[C.TYL_KEYWORD_POST_PROCESSORS].append(
+                        {env:
+                             {
+                                 pp.__class__.__name__:{
+                                     C.TYL_KEYWORD_LOGGED_ERROR_CT: pp.__logged_errors__,
+                                     C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp.__recent_error__,
+                                 }
+                             }
+                        }
+                )
+
+            return json.dumps(state, indent=2), C.HTTP_OK
 
         # TODO: Put some auth around forcing this to stop.
-        # @self.backend_service.route('/shutdown')
-        # def shutdown():
-        #  Check if any repos are locked
-        #  call the __backends.cleanup() functions
-        #  bail out.
-        #     func = request.environ.get('werkzeug.server.shutdown')
-        #     if func is None:
-        #         raise RuntimeError('Not running with the Werkzeug Server')
-        #     func()
-        #     return ''
+        @self.backend_service.route('/getpid')
+        def shutdown():
+            if request.remote_addr == '127.0.0.1':
+                self.__allow_lock = False
+                for env, backend in self.__backends.items():
+                    if backend.__lock_state__ in [C.LOCK_STATE_INIT, C.LOCK_STATE_LOCKED]:
+                        self.__allow_lock = True
+                        return 'False', C.HTTP_OK
+                from os import getpid
+                return str(getpid()), C.HTTP_OK
+            return '', C.HTTP_UNAUTHORIZED
 
         @self.backend_service.errorhandler(404)
         def four_oh_four(thing):

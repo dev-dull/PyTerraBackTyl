@@ -49,6 +49,8 @@ class TYLPersistant(object):
 
 class TYLNonpersistant(object):
     __metaclass__ = abc.ABCMeta
+    __logged_errors__ = 0
+    __recent_error__ = ''
 
     @abc.abstractmethod
     def on_locked(self, state_obj, raw=''):
