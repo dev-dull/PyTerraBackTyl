@@ -10,7 +10,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.0.0'
+__version__ = '1.0.2'
 
 
 class PyTerraBackTYLException(Exception):
@@ -54,7 +54,7 @@ class PyTerraBackTYL(object):
                     if self.__backends[self.__env].__lock_state__ in accepted_states:
                         old_state = self.__backends[self.__env].__lock_state__
                         self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_INIT
-                        lock_text = request.data.decode()
+                        lock_text = request.data.decode() or '{}'
                         if set_backend_state(json.loads(lock_text), raw=lock_text):
                             logging.debug('Lock state set to %s' % new_state)
                             self.__backends[self.__env].__lock_state__ = new_state
@@ -191,6 +191,9 @@ class PyTerraBackTYL(object):
         if self.__env not in self.__backends:
             self.__backends[self.__env] = self.backend_class(self.__env, C, self)
             self.__post_processors[self.__env] = [c(self.__env, C, self) for c in self.post_process_classes]
+
+            if self.__backends[self.__env].get_lock_state():
+                self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_LOCKED
 
     @staticmethod
     def __load_class(class_name, superclass):
