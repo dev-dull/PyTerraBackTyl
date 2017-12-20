@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import ldap
 import logging
 import abc_tylstore
 
@@ -219,5 +220,9 @@ class PyTerraBackTYL(object):
 
 
 if __name__ == '__main__':
-    logging.getLogger('').setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
+    # TODO: This isn't the expected way to set up logging.
+    logger = logging.getLogger('')
+    logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
+    logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
     PyTerraBackTYL().backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)
