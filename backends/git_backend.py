@@ -89,7 +89,11 @@ class GitBackend(TYLPersistant):
             self.repository.rm(self.lockfile)
             self.repository.add(self.logfile)
             # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
-            self.repository.commit(m=self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj)))
+            if state_obj:
+                message = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj))
+            else:
+                message = 'An out-of-process change was made using terraform (e.g. `terraform force-unlock`'
+            self.repository.commit(m=message)
             self.repository.push(self.push_origin, self.ENV)
             return True
         logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
@@ -112,7 +116,10 @@ class GitBackend(TYLPersistant):
 
         foutin.seek(0)
         # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
-        log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
+        if json_obj:
+            log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
+        else:
+            log_lines.append('An out-of-process change was made using terraform (e.g. `terraform force-unlock`')
         foutin.write('\n'.join(log_lines) + '\n')
         foutin.close()
         del foutin

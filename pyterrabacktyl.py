@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import ldap
 import logging
 import abc_tylstore
 
@@ -9,7 +10,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.0.0'
+__version__ = '1.0.2'
 
 
 class PyTerraBackTYLException(Exception):
@@ -53,7 +54,7 @@ class PyTerraBackTYL(object):
                     if self.__backends[self.__env].__lock_state__ in accepted_states:
                         old_state = self.__backends[self.__env].__lock_state__
                         self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_INIT
-                        lock_text = request.data.decode()
+                        lock_text = request.data.decode() or '{}'
                         if set_backend_state(json.loads(lock_text), raw=lock_text):
                             logging.debug('Lock state set to %s' % new_state)
                             self.__backends[self.__env].__lock_state__ = new_state
@@ -191,6 +192,9 @@ class PyTerraBackTYL(object):
             self.__backends[self.__env] = self.backend_class(self.__env, C, self)
             self.__post_processors[self.__env] = [c(self.__env, C, self) for c in self.post_process_classes]
 
+            if self.__backends[self.__env].get_lock_state():
+                self.__backends[self.__env].__lock_state__ = C.LOCK_STATE_LOCKED
+
     @staticmethod
     def __load_class(class_name, superclass):
         path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
@@ -219,5 +223,9 @@ class PyTerraBackTYL(object):
 
 
 if __name__ == '__main__':
-    logging.getLogger('').setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
+    # TODO: This isn't the expected way to set up logging.
+    logger = logging.getLogger('')
+    logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
+    logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
     PyTerraBackTYL().backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)
