@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistant
 
-__version__ = '1.1.0'
+__version__ = '1.1.3'
 
 
 class GitBackend(TYLPersistant):
@@ -83,6 +83,8 @@ class GitBackend(TYLPersistant):
         return True
 
     def set_unlocked(self, state_obj, **kwargs):
+        # Terraform doesn't currently send the lock ID when a force-unlock is done.
+        # If they fix that, then we should compare lock IDs before unlocking.
         self.repository.pull()
         if os.path.exists(self.lockfile):
             self._update_log(state_obj)
