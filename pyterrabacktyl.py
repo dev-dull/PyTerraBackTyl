@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.1.2'
+__version__ = '1.1.3'
 _env = None  # TODO: thread-safe this variable(?)
 _backends = {}
 _post_processors = {}
@@ -36,7 +36,6 @@ else:
 
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
     # TODO: `terraform force-unlock <ID>` doesn't work.
-    set_env_from_url()
     if new_state in C.LOCK_STATES.keys():
         if request.method == accepted_method:
             if _backends[_env].__lock_state__ in accepted_states:
@@ -59,6 +58,7 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
 
 @backend_service.route('/lock', methods=[C.HTTP_METHOD_LOCK, C.HTTP_METHOD_GET])
 def tf_lock():
+    set_env_from_url()
     if _allow_lock:
         state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
                                 C.HTTP_METHOD_LOCK, _backends[_env].set_locked)
@@ -81,6 +81,7 @@ def tf_lock():
 
 @backend_service.route('/unlock', methods=[C.HTTP_METHOD_UNLOCK, C.HTTP_METHOD_GET])
 def tf_unlock():
+    set_env_from_url()
     state = _set_lock_state(C.LOCK_STATE_UNLOCKED, [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT],
                             C.HTTP_METHOD_UNLOCK, _backends[_env].set_unlocked)
 
