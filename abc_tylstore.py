@@ -4,6 +4,7 @@ from CONSTS import C
 
 class TYLPersistant(object):
     __metaclass__ = abc.ABCMeta
+    # TODO: Assignment to this variable from pyterrabacktyl is probably duck-typing in a new variable.
     __lock_state__ = C.LOCK_STATE_UNLOCKED
 
     @abc.abstractmethod
@@ -49,6 +50,7 @@ class TYLPersistant(object):
 
 class TYLNonpersistant(object):
     __metaclass__ = abc.ABCMeta
+    # TODO: Assignment to these variables from pyterrabacktyl is probably duck-typing in a new variable.
     __logged_errors__ = 0
     __recent_error__ = ''
 

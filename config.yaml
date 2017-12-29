@@ -4,35 +4,18 @@
 # BACKEND_SERVICE_PORT: 2442
 
 BACKEND_PLUGINS_PATH: 'backends'
-BACKEND_CLASS: 'git_backend.GitBackend'
+BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
 POST_PROCESS_CLASSES: []
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
 
 ##
-##  git_backend.GitBackend configuration
+##  pyshelve_backend.PyShelveBackend configuration
 ##
 
-## --- Optional settings: ---
-GIT_WORKING_PATH: null  # Let the app create one in the temp directory of the OS.
+# The path to where the python shelf objects should be saved.
+PYSHELVE_DATA_PATH: '/Users/alastad/PycharmProjects/PyTerraBackTyl/pyshelve'
 
-## --- REQUIRED settings! ---
-# The SSH repo to use to store tfstate, lock status, and logs.
-GIT_REPOSITORY: 'git@github.com:dev-dull/backend_test.git'  # No HTTP/S yet.
-
-# The branch to clone when creating a new environment with Terraform.
-GIT_DEFAULT_CLONE_BRANCH: 'origin/master'
-
-# The format to use for commit messages. Options are case sensitive.
-# Valid values: ID, Operation, Info, Who, Version, Created, Path
-GIT_COMMIT_MESSAGE_FORMAT: '{Who}, {Operation} - {ID}'
-
-# Maximum number of log messages to keep in the GIT_STATE_CHANGE_LOG_FILENAME file.
-GIT_STATE_CHANGE_LOG_SCROLLBACK: 300
-
-# Name of the log file to commit to record locks/unlocks
-GIT_STATE_CHANGE_LOG_FILENAME: 'state_change.log'
-
-# The format to use for logging messages. Options are case sensitive.
-# Valid values: ID, Operation, Info, Who, Version, Created, Path
-GIT_STATE_CHANGE_LOG_FORMAT: '{Created} - {Operation}: {Who} {ID}'
+# The filename for the tfstate shelf objects -- the environment name will be prepended
+# e.g. for environment TEST, file name will be TEST_terraform_state
+PYSHELVE_DB_FILE_NAME: '_terraform_state'
