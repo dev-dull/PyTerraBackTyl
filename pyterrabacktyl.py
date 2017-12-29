@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.1.3'
+__version__ = '1.1.4'
 _env = None  # TODO: thread-safe this variable(?)
 _backends = {}
 _post_processors = {}
@@ -34,6 +34,10 @@ else:
     C.POST_PROCESS_CLASSES = []
 
 
+def _json_string(obj):
+    return obj if isinstance(obj, str) else json.dumps(obj, indent=2)
+
+
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
     # TODO: `terraform force-unlock <ID>` doesn't work.
     if new_state in C.LOCK_STATES.keys():
@@ -45,13 +49,13 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
                 if set_backend_state(json.loads(lock_text), raw=lock_text):
                     logging.debug('Lock state set to %s' % new_state)
                     _backends[_env].__lock_state__ = new_state
-                    return _backends[_env].get_lock_state(), C.HTTP_OK
+                    return _json_string(_backends[_env].get_lock_state()), C.HTTP_OK
                 _backends[_env].__lock_state__ = old_state  # maintain the old/bad state.
     # TODO: Lost connection during the last apply, race condition, or someone else changed state out-of-process.
     # TODO: Things are fucked up if the user got us here.
     lock_state = _backends[_env].get_lock_state()
     if lock_state:
-        return lock_state, C.LOCK_STATES[C.LOCK_STATE_LOCKED]
+        return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
     return 'I don\'t know, man. Something is really fucked up.',\
            C.LOCK_STATES[_backends[_env].__lock_state__]
 
@@ -123,7 +127,7 @@ def tf_backend():
     else:
         t = _backends[_env].get_tfstate()
         logging.info('Fetched tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
-        return t, C.HTTP_OK
+        return _json_string(t), C.HTTP_OK
 
 
 @backend_service.route('/state', methods=['GET'])
