@@ -39,7 +39,6 @@ def _json_string(obj):
 
 
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
-    # TODO: `terraform force-unlock <ID>` doesn't work.
     if new_state in C.LOCK_STATES.keys():
         if request.method == accepted_method:
             if _backends[_env].__lock_state__ in accepted_states:

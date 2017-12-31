@@ -10,7 +10,6 @@ More complete installation documentation will be created as this project matures
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
   - Flask
   - Yaml
-  - Json
 - Git repository to hold the `terraform.tfstate` file and related files.
 - User account to run the PyTerraBackTYL service with SSH keypair.
 
@@ -43,7 +42,7 @@ More complete installation documentation will be created as this project matures
     - Install the required Python Libraries:
       - _Note_: Depending on your OS and Python installation method, the `pip3` command may be something like, `pip3.6`.
       - _Note_: Omit the `--user` flag and run as root if you want these libraries to be accessible to all users on the system.
-      - `pip3 install setuptools --user`
+      - `pip3 install setuptools --user` requried to install Flask.
       - `pip3 install flask pyyaml --user`
 
 #### Configuring PyTerraBackTYL:
