@@ -7,40 +7,12 @@ The Below instructions are abbreviated and assume that you plan to use the defau
 More complete installation documentation will be created as this project matures.
 
 ### Requirements:
-- Python 3.6.2 - other versions are untested but are expected to work well.
+- PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
   - Flask
   - Yaml
   - Json
-  - GitPython (requires that the OS has `git` installed)
 - Git repository to hold the `terraform.tfstate` file and related files.
 - User account to run the PyTerraBackTYL service with SSH keypair.
-
-### High-level installation instructions:
-- Install Python3 on the machine running the service.
-- `pip3 install` the required libraries listed above.
-- Log in as the user that will run the PyTerraBackTYL service.
-- Clone the master branch of the PyTerraBackTYL repository into the target
-- Generate an SSH keypair for the service user if needed.
-- Create a Git repository to store your `terraform.tfstate` file in.
-- Add the SSH key to the Git repository to enable clone, commit, and push privileges.
-- Modify `config.yaml`
-  - Set `GIT_REPOSITORY` to your newly created git repository.
-  - Set `BACKEND_SERVICE_IP` - If you're unsure what to use, set this to `0.0.0.0`.
-  - Read through the configuration descriptions and make any additional changes.
-- Fire up the service with something like, `nohup python3 pyterrabacktyl.py 2>&1 > service.log &`
-- Test the service with `curl http://localhost:2442/state; echo` (note that the current implementation of this endpoint does not accurately reflect service health).
-- Update one of your Terraform projects to point at the HTTP backend. For example,
-```buildoutcfg
-terraform {
-  backend "http" {
-    address = "http://localhost:2442/?env=DEVTEST"
-    lock_address = "http://localhost:2442/lock?env=DEVTEST"
-    unlock_address = "http://localhost:2442/unlock?env=DEVTEST"
-  }
-}
-```
-- **WARNING**: Note the `?env=SOME_ENVIRONMENT` at the end of the url. This is how PyTerraBackTYL identifies separate projects. There's no guardrails around this. **Make sure this value is unique for each seaparate environemnt!**
-- Rerun `terraform init` to use the backend service. Say 'yes' at the prompt if you wish to copy the existing terraform.tfstate file to the HTTP backend.
 
 ### Detailed installation instructions:
 #### Install PyTerraBackTYL:
@@ -49,7 +21,7 @@ terraform {
 - Check if `python3` is installed.
   - e.g. `whereis python3`
 - Install Python 3.x if needed
-  - RedHat/CentOS ([source](https://www.digitalocean.com/community/tutorials/how-to-install-python-3-and-set-up-a-local-programming-environment-on-centos-7)): 
+  - RedHat/CentOS ([detailed instructions](https://www.digitalocean.com/community/tutorials/how-to-install-python-3-and-set-up-a-local-programming-environment-on-centos-7)):
     - Install yum utils: `yum install yum-utils`
     - Install libs/dependencies: `yum groupinstall development`
     - Install the Yum Repo with Python 3.x: `yum -y install https://centos7.iuscommunity.org/ius-release.rpm`
@@ -61,21 +33,24 @@ terraform {
 - Create the directories and service account for PyTerraBackTYL:
     - Create the non-privileged user that will run the PyTerraBackTYL service: `adduser tfbackendsvc` (this also creates a directory for the user in `/home` which you will likely need.)
     - Create the directory the PyTerrBackTYL service will run from: `mkdir /opt/pyterrabacktyl`
+    - Create the directory the service will store Terraform states in: `mkdir /opt/pyterrabacktyl/data`
     - Set directory ownership: `chown -R tfbackendsvc /opt/pyterrabacktyl`
 - Install PyTerraBackTYL and dependencies:
     - Clone the PyTerraBackTYL repository:
       - `cd /opt/pyterrabacktyl`
       - `su tfbackendsvc`
       - `git clone https://github.com/dev-dull/PyTerraBackTyl.git`
-    - Install the required Python Libraries: 
+    - Install the required Python Libraries:
       - _Note_: Depending on your OS and Python installation method, the `pip3` command may be something like, `pip3.6`.
       - _Note_: Omit the `--user` flag and run as root if you want these libraries to be accessible to all users on the system.
-      - `pip3 install flask gitpython pyyaml --user`
+      - `pip3 install setuptools --user`
+      - `pip3 install flask pyyaml --user`
 
 #### Configuring PyTerraBackTYL:
 The contents of the `config.yaml` configuration file will largely depend on which backend module you choose to
 to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBackTYL service:
 
+Modify `config.yaml` and set the following items to the desired values.
 - `BACKEND_SERVICE_IP: '127.0.0.1'`
   - The IP the service should listen for requests on. If you are unsure what to use here, set `0.0.0.0`
 - `BACKEND_SERVICE_PORT: 2442`
@@ -83,16 +58,29 @@ to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBa
 - `BACKEND_PLUGINS_PATH: 'backends'`
   - The directory where PyTerraBackTYL can find the Backend plugins.
   - The value shown here means the `backends` subdirectory where PyTerraBackTYL is installed.
-- `BACKEND_CLASS: 'git_backend.GitBackend'`
-  - The file and class name of the PyTerraBackTYL plugin to use; Python will look in a file called `git_backend.py`
-  for the class `GitBackend`
-- `LOG_LEVEL: 'INFO'` 
+- `BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'`
+  - The file and class name of the PyTerraBackTYL plugin to use; Python will look in a file called `pyshelve_backend.py`
+  for the class `PyShelveBackend`
+- `LOG_LEVEL: 'INFO'`
   - The amount of info to log. Valid values are: INFO, DEBUG, WARNING, ERROR
   - If an invalid value is specified, PyTerraBackTYL will default to INFO.
-  
-#### Setup and Configure the GitBackend module:
+
+#### Configuring the PyTerraBackTYL backend plugin:
+##### Option 1: Configuring the PyShelveBackend (default backend module):
+If this is your first time configuring PyTerraBackTYL, it is recommended that you start with this class to validate service configuration. Once you've validated PyTerraBackTYL is working as expected, you can change your `BACKEND_CLASS` setting to the module you plan on using for handling Terraform state.
+
+Modify `config.yaml` and set the following items to the desired values.
+- `PYSHELVE_DATA_PATH: '/opt/pyterrabacktyl/data'`
+  - The directory to save Python 'shelve' files that contain state.
+  - The user running the PyTerraBackTYL service *must* have read/write access to this directory.
+  - Do NOT set this value to a temporary director (such as /tmp)
+- `PYSHELVE_DB_FILE_NAME: '_terraform_state'`
+  - The file name to use for Python 'shelve' oblects.
+  - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'qa_terraform_state' will be created).
+
+##### Option 2: Setup and Configure the GitBackend module:
 - Create SSH keypair:
-  - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`) 
+  - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`)
   - Check if a keypair already exists: `ls -lah ~/.ssh`
   - Generate a keypair if needed: `ssh-keygen -t rsa` leave all prompts empty by pressing enter until the command completes.
 - Set the git global config for the tfbackendsvc user:
@@ -106,7 +94,7 @@ to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBa
   - Do an initial clone, add, commit, and push to the repository as the tfbackendsvc user to verify everything is working as expected.
 - Modify the `config.yaml` configuration file.
   - Optional settings:
-    - `GIT_WORKING_PATH: null` 
+    - `GIT_WORKING_PATH: null`
       - When omitted or `null`, GitBackend will use the default temporary directory of the operating system.
       - If you set a value here, make sure the directory exists and that you have set the correct ownership/permissions.
   - Required settings:
@@ -120,7 +108,7 @@ to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBa
       - valid values are:
         - ID: An ID created by Terraform.
         - Operation: The Terraform operation being carried out (plan, apply, etc.)
-        - Info: (TODO: check terraform documentation) 
+        - Info: (TODO: check terraform documentation)
         - Who: The username and hostname who initiated the terraform command.
         - Version: The version of Terraform that was used.
         - Created: Timestamp of when the terraform command ws run.
@@ -137,7 +125,27 @@ to use with PyTerraBackTYL. Below are the configuration items for core PyTerraBa
     - `cd /opt/pyterrabacktyl/PyTerraBackTyl`
     - `nohup python3 pyterrabacktyl.py 2>&1 > pyterrabacktyl.log &`
     - `curl http://localhost:2442/state`
-    
+
+##### Option 3: Create your own backend module:
+PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module.
+
+Import `TYLPersistant` and define your subclass:
+```
+from abc_tylstore import TYLPersistant
+class MyPersistantBackend(TYLPersistant):...
+```
+
+Implement the following functions in your class:
+- `__init__(self, environment, constants, *args, **kwargs):`
+  - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
+  - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
+  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+- `def set_locked(self, state_obj, **kwargs):`
+  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - RETURNS: value that evaluates to `True` on a successful lock; value that evaluates to `False` when someone else is already holding the lock.
+  - _Note:_ Except in very specific edge cases, you should not do any exception handling. Any failures should be allowed to be raised so the exception (HTTP status code 500) is sent to Terraform. This prevents Terraform from continuing and lets the user know the action did not work as expected. 
+
 #### Configure your Terraform project to use the PyTerraBackTYL Service:
 In your project, configure the HTTP backend service:
 ```

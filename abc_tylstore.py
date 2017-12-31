@@ -2,6 +2,12 @@ import abc
 from CONSTS import C
 
 
+class TYLHelpers(object):
+    @classmethod
+    def get_hostnames_from_tfstate(cls, json_obj):
+        pass
+
+
 class TYLPersistant(object):
     __metaclass__ = abc.ABCMeta
     # TODO: Assignment to this variable from pyterrabacktyl is probably duck-typing in a new variable.

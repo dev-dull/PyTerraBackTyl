@@ -1,8 +1,7 @@
 ## IP and ports to listen on. Defaults shown.
 ## Authentication service is locked to localhost as it should only be used by PyTerraBackTyl
-# BACKEND_SERVICE_IP: '127.0.0.1'
-# BACKEND_SERVICE_PORT: 2442
-# AUTHENTICATION_SERVICE_PORT: 2443
+BACKEND_SERVICE_IP: '0.0.0.0'
+BACKEND_SERVICE_PORT: 2442
 
 USE_AUTHENTICATION_SERVICE: false
 AUTHENTICATION_METHOD: ''
@@ -17,8 +16,8 @@ LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
 ##  pyshelve_backend.PyShelveBackend configuration
 ##
 
-# The path to where the python shelf objects should be saved.
-PYSHELVE_DATA_PATH: '/Users/alastad/PycharmProjects/PyTerraBackTyl/pyshelve'
+# The path to where the python shelf objects should be saved (no trailing slash).
+PYSHELVE_DATA_PATH: '/opt/pyterrabacktyl/data'
 
 # The filename for the tfstate shelf objects -- the environment name will be prepended
 # e.g. for environment TEST, file name will be TEST_terraform_state
