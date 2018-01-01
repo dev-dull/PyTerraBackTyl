@@ -2,7 +2,7 @@ import os
 import shelve
 import logging
 
-from abc_tylstore import TYLPersistant
+from abc_tylstore import TYLPersistent
 
 __version__ = '0.1.0'
 
@@ -34,7 +34,7 @@ class _lazyShelf(object):
         return value
 
 
-class PyShelveBackend(TYLPersistant):
+class PyShelveBackend(TYLPersistent):
     def __init__(self, environment, constants, parent):
         self.C = constants
         self.C.TFSTATE_KEYWORD = 'TFSTATE'
