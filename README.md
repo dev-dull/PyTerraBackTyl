@@ -130,7 +130,7 @@ PyTerraBackTYL was developed with the expectation that you're looking at this pr
 
 ---
 
-_Note:_ Except in very rare cases, you should not do any exception handling. Any failures should be allowed to be raised so the exception (HTTP status code 500) is sent to Terraform. This prevents Terraform from continuing and lets the user know the action did not work as expected.)
+***Note:*** Except in very rare cases, you should not do any exception handling. Any failures should be allowed to be raised so the exception (HTTP status code 500) is sent to Terraform. This prevents Terraform from continuing and lets the user know the action did not work as expected.)
 
 ---
 
@@ -176,4 +176,8 @@ terraform {
 
 Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is running.
 
+---
+
 ***WARNING***: The `?env=YOURVALUE` is how PyTerraBackTYL tracks states across multiple environments (e.g. production, test, QA, etc.). Be sure that you are always setting the value of this parameter to accurately to reflect the environment you are making changes to.
+
+---
