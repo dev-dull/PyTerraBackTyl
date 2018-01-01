@@ -1,6 +1,7 @@
-from abc_tylstore import TYLPersistesnt
+from abc_tylstore import TYLPersistent
 
-class BogusBackend(TYLPersistant):
+
+class BogusBackend(TYLPersistent):
     _pretend_to_be_locked = ''
     _tflock = '{'\
                '  "Operation": "OperationTypeApply",'\
