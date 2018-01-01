@@ -39,7 +39,6 @@ def _json_string(obj):
 
 
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
-    # TODO: `terraform force-unlock <ID>` doesn't work.
     if new_state in C.LOCK_STATES.keys():
         if request.method == accepted_method:
             if _backends[_env].__lock_state__ in accepted_states:
@@ -191,7 +190,9 @@ def set_env_from_url():
     global _env
     _env = request.values['env'] if 'env' in request.values else ''
     if _env not in _backends:
+        # TODO: check for a URL endpoint and register it?
         _backends[_env] = backend_class(_env, C, backend_service)
+        # TODO: pass post processors a handle to their backend.
         _post_processors[_env] = [c(_env, C, backend_service) for c in post_process_classes]
 
         if _backends[_env].get_lock_state():
