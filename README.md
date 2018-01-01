@@ -13,7 +13,7 @@ More complete installation documentation will be created as this project matures
 - Git repository to hold the `terraform.tfstate` file and related files.
 - User account to run the PyTerraBackTYL service with SSH keypair.
 
-### Detailed installation instructions:
+### Installation instructions:
 #### Install PyTerraBackTYL:
 - SSH to the host you intend to run the PyTerraBackTYL service on.
   - e.g. `ssh user@linuxhost`
@@ -75,7 +75,7 @@ Modify `config.yaml` and set the following items to the desired values.
   - Do NOT set this value to a temporary director (such as /tmp)
 - `PYSHELVE_DB_FILE_NAME: '_terraform_state'`
   - The file name to use for Python 'shelve' oblects.
-  - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'qa_terraform_state' will be created).
+  - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'QA_terraform_state' will be created).
 
 ##### Option 2: Setup and Configure the GitBackend module:
 - Create SSH keypair:
@@ -126,15 +126,7 @@ Modify `config.yaml` and set the following items to the desired values.
     - `curl http://localhost:2442/state`
 
 ##### Option 3: Create your own backend module:
-PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module.
-
-Import `TYLPersistant` and define your subclass:
-```
-from abc_tylstore import TYLPersistant
-class MyPersistantBackend(TYLPersistant):...
-```
-
-Implement the following functions in your class (refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example):
+PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module. refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example.
 
 ---
 
@@ -142,6 +134,13 @@ _Note:_ Except in very rare cases, you should not do any exception handling. Any
 
 ---
 
+Import `TYLPersistant` and define your subclass:
+```
+from abc_tylstore import TYLPersistant
+class MyPersistantBackend(TYLPersistant):...
+```
+
+Implement the following functions in your class:
 - `__init__(self, environment, constants, *args, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
