@@ -6,7 +6,7 @@ import pyterrabacktyl
 from CONSTS import C
 from unittest import TestCase
 from unittest.mock import patch
-from abc_tylstore import TYLPersistant
+from abc_tylstore import TYLPersistent
 
 
 class Test_pyterrabacktyl(TestCase):

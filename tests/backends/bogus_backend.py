@@ -1,4 +1,4 @@
-from abc_tylstore import TYLPersistant
+from abc_tylstore import TYLPersistesnt
 
 class BogusBackend(TYLPersistant):
     _pretend_to_be_locked = ''
