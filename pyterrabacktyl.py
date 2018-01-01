@@ -225,8 +225,8 @@ def _load_class(class_name, superclass):
         raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
 
 
-backend_class = _load_class(C.BACKEND_CLASS, abc_tylstore.TYLPersistant)
-post_process_classes = [_load_class(c, abc_tylstore.TYLNonpersistant) for c in C.POST_PROCESS_CLASSES]
+backend_class = _load_class(C.BACKEND_CLASS, abc_tylstore.TYLPersistent)
+post_process_classes = [_load_class(c, abc_tylstore.TYLNonpersistent) for c in C.POST_PROCESS_CLASSES]
 
 if __name__ == '__main__':
     # TODO: This isn't the expected way to set up logging.

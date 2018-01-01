@@ -8,7 +8,7 @@ class TYLHelpers(object):
         pass
 
 
-class TYLPersistant(object):
+class TYLPersistent(object):
     __metaclass__ = abc.ABCMeta
     # TODO: Assignment to this variable from pyterrabacktyl is probably duck-typing in a new variable.
     __lock_state__ = C.LOCK_STATE_UNLOCKED
@@ -54,7 +54,7 @@ class TYLPersistant(object):
         pass
 
 
-class TYLNonpersistant(object):
+class TYLNonpersistent(object):
     __metaclass__ = abc.ABCMeta
     # TODO: Assignment to these variables from pyterrabacktyl is probably duck-typing in a new variable.
     __logged_errors__ = 0

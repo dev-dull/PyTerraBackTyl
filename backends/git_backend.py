@@ -5,12 +5,12 @@ import logging
 import tempfile
 
 from collections import defaultdict
-from abc_tylstore import TYLPersistant
+from abc_tylstore import TYLPersistent
 
 __version__ = '1.1.3'
 
 
-class GitBackend(TYLPersistant):
+class GitBackend(TYLPersistent):
     def __init__(self, environment, constants, parent):
         self.C = constants
         self.ENV = environment if environment else self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
