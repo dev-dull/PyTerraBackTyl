@@ -130,10 +130,10 @@ PyTerraBackTYL was developed with the expectation that you're looking at this pr
 
 ---
 
-Import `TYLPersistant` and define your subclass:
+Import `TYLPersistent` and define your subclass:
 ```
-from abc_tylstore import TYLPersistant
-class MyPersistantBackend(TYLPersistant):...
+from abc_tylstore import TYLPersistent
+class MyPersistentBackend(TYLPersistent):...
 ```
 
 Implement the following functions in your class:
@@ -178,4 +178,42 @@ Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is 
 
 ---
 
-### Optional: Create a Non- persistent 
+### *Optional:* Create a non-persistent, 'post-processor' backend:
+Similarly to how custom backend modules are managed, you can also create a `TYLNonpersistent` backend. These are optional backends that don't store any locking or state data, but rather allow you the opportunity to parse the Terraform lock and state files to perform other actions. Examples of tasks you may want to perform with a non-persistent backed include adding new hosts to monitoring, generating a chat notification that a user has performed an action, generating a report email containing a list of new hostnames, etc. These non-persistent backends should be kept in the same directory as the persistent backends (e.g. the `backends` directory).
+
+---
+
+***Note:*** All exceptions raised by non-persistent backends are ignored as they cannot be allowed to interfere with the functionality of the *persistent* backend which is handling state and locking.
+
+---
+
+Example `config.yaml` configuration for multiple non-persistent backends:
+```
+POST_PROCESS_CLASSES:
+  - 'zenoss_post_processor.ZenossPostProcessor'
+  - 'slack_notify_post_processor.SlackNotifyPostProcessor'
+```
+
+Import `TYLNonpersistent` and define your subclass:
+```
+from abc_tylstore import TYLNonpersistent
+class MyNonpersistentBackend(TYLNonpersistent):...
+```
+
+Implement the following functions in your class:
+- `__init__(self, environment, constants, *args, **kwargs):`
+  - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant.
+  - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_POST_PROCESSOR_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_POST_PROCESSOR_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
+  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+- `def on_locked(self, state_obj, **kwargs):`
+  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - No return value. Return `None` if needed.
+- `def on_unlocked(self, state_obj, **kwargs):`
+  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is unlocking the environment.
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - No return value. Return `None` if needed.
+- `def process_tfstate(self, tfstate_obj, **kwargs):`
+  - `tfstate_obj` Unpacked JSON (`dict`) which specifies the current terraform state (`terraform.tfstate`)
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - No return value. Return `None` if needed.
