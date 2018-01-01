@@ -126,7 +126,7 @@ Modify `config.yaml` and set the following items to the desired values.
     - `curl http://localhost:2442/state`
 
 ##### Option 3: Create your own backend module:
-PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module. refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example.
+PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module. Refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example.
 
 ---
 
@@ -176,7 +176,4 @@ terraform {
 
 Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is running.
 
-***WARNING***: The `?env=YOURVALUE` is how PyTerraBackTYL tracks states across multiple environments (e.g. production, test, QA, etc.). Be sure that you are always setting the value of this parameter to accurately to reflect the environment you are making changes to. You likely already have a variable in your terraform files that reflects the environment. Use this value here.
-
-## But I don't want to use Git as a backend:
-That's fine. Subclass `abc_tylstore.TYLStore`, implement the required functions, drop your module into the `backends` directory, update your `config.yaml` to point at your new module, and try not to break production in the process of testing.
+***WARNING***: The `?env=YOURVALUE` is how PyTerraBackTYL tracks states across multiple environments (e.g. production, test, QA, etc.). Be sure that you are always setting the value of this parameter to accurately to reflect the environment you are making changes to.
