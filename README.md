@@ -3,9 +3,6 @@
 PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state file, `terraform.tfstate`.
 
 ## Setup:
-The Below instructions are abbreviated and assume that you plan to use the default GitBackend module.
-More complete installation documentation will be created as this project matures.
-
 ### Requirements:
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
   - Flask
