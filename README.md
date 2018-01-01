@@ -7,8 +7,6 @@ PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state f
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
   - Flask
   - Yaml
-- Git repository to hold the `terraform.tfstate` file and related files.
-- User account to run the PyTerraBackTYL service with SSH keypair.
 
 ### Installation instructions:
 #### Install PyTerraBackTYL:
@@ -179,3 +177,5 @@ Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is 
 ***WARNING***: The `?env=YOURVALUE` is how PyTerraBackTYL tracks states across multiple environments (e.g. production, test, QA, etc.). Be sure that you are always setting the value of this parameter to accurately to reflect the environment you are making changes to.
 
 ---
+
+### Optional: Create a Non- persistent 

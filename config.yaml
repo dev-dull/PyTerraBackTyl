@@ -1,10 +1,6 @@
 ## IP and ports to listen on. Defaults shown.
-## Authentication service is locked to localhost as it should only be used by PyTerraBackTyl
 BACKEND_SERVICE_IP: '0.0.0.0'
 BACKEND_SERVICE_PORT: 2442
-
-USE_AUTHENTICATION_SERVICE: false
-AUTHENTICATION_METHOD: ''
 
 BACKEND_PLUGINS_PATH: 'backends'
 BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
