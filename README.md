@@ -134,7 +134,14 @@ from abc_tylstore import TYLPersistant
 class MyPersistantBackend(TYLPersistant):...
 ```
 
-Implement the following functions in your class:
+Implement the following functions in your class (refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example):
+
+---
+
+_Note:_ Except in very rare cases, you should not do any exception handling. Any failures should be allowed to be raised so the exception (HTTP status code 500) is sent to Terraform. This prevents Terraform from continuing and lets the user know the action did not work as expected.)
+
+---
+
 - `__init__(self, environment, constants, *args, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
@@ -142,8 +149,19 @@ Implement the following functions in your class:
 - `def set_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
-  - RETURNS: value that evaluates to `True` on a successful lock; value that evaluates to `False` when someone else is already holding the lock.
-  - _Note:_ Except in very specific edge cases, you should not do any exception handling. Any failures should be allowed to be raised so the exception (HTTP status code 500) is sent to Terraform. This prevents Terraform from continuing and lets the user know the action did not work as expected. 
+  - **RETURNS**: value that evaluates to `True` on a successful lock; value that evaluates to `False` when someone else is already holding the lock.
+- `def set_unlocked(self, state_obj, **kwargs):`
+  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is unlocking the environment. The `ID` value should match the one provided when lock was created. However, when a user issues a `terraform force-unlock <ID value>` command, the ID is not currently being passed to the backend. Validating the ID in this function will make forcing an unlock impossible until HashiCorp addresses this deficiency.
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - **RETURNS**: value that evaluates to `True` on a successful unlock; value that evaluates to `False` when the environment is NOT still locked (logs warning message).
+- `def get_lock_state(self):`
+  - **RETURNS**: The string (`str`) or JSON compatible object of the lock (the value received in `set_locked()`). Return and empty string when no lock is held.
+- `def store_tfstate(self, tfstate_obj, **kwargs):`
+  - `tfstate_obj` Unpacked JSON (`dict`) which specifies the current terraform state (`terraform.tfstate`)
+  - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
+  - No return value. Return `None` if needed.
+- `def get_tfstate(self):`
+  - **RETURNS**: The string (`str`) or JSON compatible object of the Terraform state (the value received in `store_tfstate()`).
 
 #### Configure your Terraform project to use the PyTerraBackTYL Service:
 In your project, configure the HTTP backend service:

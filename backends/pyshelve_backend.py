@@ -1,9 +1,7 @@
 import os
-import json
 import shelve
 import logging
 
-from collections import defaultdict
 from abc_tylstore import TYLPersistant
 
 __version__ = '0.1.0'
@@ -73,8 +71,8 @@ class PyShelveBackend(TYLPersistant):
             return self.tfstate_shelf[self.C.TFSTATE_KEYWORD]
         return ''
 
-    def store_tfstate(self, state_obj, **kwargs):
-        self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = state_obj
+    def store_tfstate(self, tfstate_obj, **kwargs):
+        self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = tfstate_obj
         logging.debug('Saved state file for env %s' % self.ENV)
 
     def get_tfstate(self):
