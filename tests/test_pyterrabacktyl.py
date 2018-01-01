@@ -103,13 +103,13 @@ class Test_pyterrabacktyl(TestCase):
         pyterrabacktyl.set_env_from_url()
         self.assertEqual(pyterrabacktyl._env, 'unittest')
         self.assertTrue('unittest' in pyterrabacktyl._backends)
-        self.assertTrue(isinstance(pyterrabacktyl._backends['unittest'], TYLPersistant))
+        self.assertTrue(isinstance(pyterrabacktyl._backends['unittest'], TYLPersistent))
         self.assertTrue('unittest' in pyterrabacktyl._post_processors)
         self.assertEqual(pyterrabacktyl._post_processors['unittest'], [])
 
     def test_load_class(self):
-        obj_type = pyterrabacktyl._load_class('bogus_backend.BogusBackend', TYLPersistant)
-        self.assertTrue(isinstance(obj_type(), TYLPersistant))
+        obj_type = pyterrabacktyl._load_class('bogus_backend.BogusBackend', TYLPersistent)
+        self.assertTrue(isinstance(obj_type(), TYLPersistent))
 
         self.assertRaises(pyterrabacktyl.PyTerraBackTYLException, pyterrabacktyl._load_class,
                           'bogus_backend.BogusBackend', int)
