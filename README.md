@@ -183,7 +183,7 @@ Similarly to how custom backend modules are managed, you can also create a `TYLN
 
 ---
 
-***Note:*** All exceptions raised by non-persistent backends are ignored as they cannont be allowed to interfere with the functionality of the *persistent* backend which is handling state and locking.
+***Note:*** All exceptions raised by non-persistent backends are ignored as they cannot be allowed to interfere with the functionality of the *persistent* backend which is handling state and locking.
 
 ---
 
@@ -194,7 +194,7 @@ POST_PROCESS_CLASSES:
   - 'slack_notify_post_processor.SlackNotifyPostProcessor'
 ```
 
-Import `TYLPersistent` and define your subclass:
+Import `TYLNonpersistent` and define your subclass:
 ```
 from abc_tylstore import TYLNonpersistent
 class MyNonpersistentBackend(TYLNonpersistent):...
@@ -202,15 +202,15 @@ class MyNonpersistentBackend(TYLNonpersistent):...
 
 Implement the following functions in your class:
 - `__init__(self, environment, constants, *args, **kwargs):`
-  - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
-  - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
+  - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant.
+  - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_POST_PROCESSOR_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_POST_PROCESSOR_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
   - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
 - `def on_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
   - No return value. Return `None` if needed.
 - `def on_unlocked(self, state_obj, **kwargs):`
-  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is unlocking the environment. The `ID` value should match the one provided when lock was created. However, when a user issues a `terraform force-unlock <ID value>` command, the ID is not currently being passed to the backend. Validating the ID in this function will make forcing an unlock impossible until HashiCorp addresses this deficiency.
+  - `state_obj` Unpacked JSON (`dict`) with the specifics on who is unlocking the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
   - No return value. Return `None` if needed.
 - `def process_tfstate(self, tfstate_obj, **kwargs):`
