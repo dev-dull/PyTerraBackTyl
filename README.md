@@ -78,8 +78,9 @@ Modify `config.yaml` and set the following items to the desired values.
   - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'QA_terraform_state' will be created).
 
 ##### Option 2: Setup and Configure the GitBackend module:
+- SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`)
+- Install GitPython: `pip3 install GitPython --user`
 - Create SSH keypair:
-  - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`)
   - Check if a keypair already exists: `ls -lah ~/.ssh`
   - Generate a keypair if needed: `ssh-keygen -t rsa` leave all prompts empty by pressing enter until the command completes.
 - Set the git global config for the tfbackendsvc user:
