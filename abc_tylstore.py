@@ -5,7 +5,16 @@ from CONSTS import C
 class TYLHelpers(object):
     @classmethod
     def get_hostnames_from_tfstate(cls, json_obj):
-        pass
+        from jsonpath import jsonpath
+
+        path = '$.modules[*].resources.[?(@.type in ["%s"])].type' % '", "'.join(C.HELPER_HOSTNAME_QUERY_MAP.keys())
+        resource_types = set(jsonpath(json_obj, path) or [])
+
+        host_list = []
+        for resource_type in resource_types:
+            host_list += jsonpath(json_obj, C.HELPER_HOSTNAME_QUERY_MAP[resource_type])
+
+        return host_list
 
 
 class TYLPersistent(object):
