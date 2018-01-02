@@ -8,6 +8,11 @@ POST_PROCESS_CLASSES: []
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
 
+# Key:Value pairs where the key matches a Terraform provider, and key is a jsonPath to fetch hostnames from the terraform state
+HELPER_HOSTNAME_QUERY_MAP:
+  digitalocean_droplet: 'modules[*].resources.*.primary.attributes.name'
+  vsphere_virtual_machine: '$.modules[*].resources.[?(@.type == "vsphere_virtual_machine")].primary[?(@.memory != 0)].name'
+
 ##
 ##  pyshelve_backend.PyShelveBackend configuration
 ##
