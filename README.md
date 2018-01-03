@@ -39,6 +39,7 @@ PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state f
       - _Note_: Omit the `--user` flag and run as root if you want these libraries to be accessible to all users on the system.
       - `pip3 install setuptools --user` requried to install Flask.
       - `pip3 install flask pyyaml --user`
+      - `pip3 install jsonpath --user` optional, but recommended.
 
 #### Configuring PyTerraBackTYL:
 The contents of the `config.yaml` configuration file will largely depend on which backend module you choose to
@@ -58,6 +59,10 @@ Modify `config.yaml` and set the following items to the desired values.
 - `LOG_LEVEL: 'INFO'`
   - The amount of info to log. Valid values are: INFO, DEBUG, WARNING, ERROR
   - If an invalid value is specified, PyTerraBackTYL will default to INFO.
+- `HELPER_HOSTNAME_QUERY_MAP:`
+  - Generally, this should not need to be changed.
+  - Contains key:value pairs where the key is the name of a Terraform provider (an exact match for what is found in a Terraform state file) and the value is a JSONPath that will return the hostnames found in a Terraform state file for that provider type.
+  - This configuration is used by the `TYLHelpers.get_hostnames_from_tfstate` function (`from abc_tylstore import TYLHelpers`)
 
 #### Configuring the PyTerraBackTYL backend plugin:
 ##### Option 1: Configuring the PyShelveBackend (default backend module):
