@@ -9,8 +9,8 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.1.4'
-_env = None  # TODO: thread-safe this variable(?)
+__version__ = '1.1.5'
+_env = None
 _backends = {}
 _post_processors = {}
 _allow_lock = True
