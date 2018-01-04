@@ -4,7 +4,7 @@ import logging
 
 from abc_tylstore import TYLPersistent
 
-__version__ = '0.1.2'
+__version__ = '0.1.4'
 
 
 class _lazyShelf(object):
@@ -67,7 +67,7 @@ class PyShelveBackend(TYLPersistent):
         return False
 
     def get_lock_state(self):
-        if self.C.TFSTATE_KEYWORD in self.tfstate_shelf:
+        if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
             return self.tfstate_shelf[self.C.LOCK_STATE_KEYWORD]
         return ''
 
