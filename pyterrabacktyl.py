@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.1.6'
+__version__ = '1.2.6'
 _env = None
 _backends = {}
 _allow_lock = True

@@ -1,6 +1,8 @@
 
 from CONST_abated import load_from_yaml
 
+__version__ = '0.1.5'
+
 
 # C is for CONST and that's good enough for me.
 class C(object):
