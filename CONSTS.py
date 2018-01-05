@@ -44,8 +44,6 @@ class C(object):
     LOCK_STATE_UNLOCKED = None
     LOCK_STATES = None
 
-    TFSTATE_FILE_NAME = None  # TODO: Are we using this value anywehre?
-
     TYL_PERMITTING_LOCKS = None
     TYL_KEYWORD_BACKEND = None
     TYL_KEYWORD_BACKEND_MODULE = None
@@ -97,6 +95,7 @@ C.TYL_PERMITTING_LOCKS = 'permitting_locks'
 C.TYL_KEYWORD_BACKEND = 'backend'
 C.TYL_KEYWORD_BACKEND_MODULE = 'backend_module'
 C.TYL_KEYWORD_POST_PROCESSORS = 'post_processors'
+C.TYL_KEYWORD_POST_PROCESSOR_MODULE = 'post_processor_module'
 C.TYL_KEYWORD_POST_PROCESSOR_MODULES = 'post_processor_modules'
 C.TYL_KEYWORD_ENVIRONMENTS = 'environments'
 C.TYL_KEYWORD_ENVIRONMENT_NAME = 'environment_name'
