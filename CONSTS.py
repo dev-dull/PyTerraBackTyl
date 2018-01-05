@@ -1,6 +1,8 @@
 
 from CONST_abated import load_from_yaml
 
+__version__ = '0.1.5'
+
 
 # C is for CONST and that's good enough for me.
 class C(object):
@@ -43,8 +45,6 @@ class C(object):
     LOCK_STATE_LOCKED = None
     LOCK_STATE_UNLOCKED = None
     LOCK_STATES = None
-
-    TFSTATE_FILE_NAME = None  # TODO: Are we using this value anywehre?
 
     TYL_PERMITTING_LOCKS = None
     TYL_KEYWORD_BACKEND = None
@@ -97,6 +97,7 @@ C.TYL_PERMITTING_LOCKS = 'permitting_locks'
 C.TYL_KEYWORD_BACKEND = 'backend'
 C.TYL_KEYWORD_BACKEND_MODULE = 'backend_module'
 C.TYL_KEYWORD_POST_PROCESSORS = 'post_processors'
+C.TYL_KEYWORD_POST_PROCESSOR_MODULE = 'post_processor_module'
 C.TYL_KEYWORD_POST_PROCESSOR_MODULES = 'post_processor_modules'
 C.TYL_KEYWORD_ENVIRONMENTS = 'environments'
 C.TYL_KEYWORD_ENVIRONMENT_NAME = 'environment_name'
@@ -104,14 +105,3 @@ C.TYL_KEYWORD_LOCK_STATE = 'lock_state'
 C.TYL_KEYWORD_HTTP_STATE = 'http_state'
 C.TYL_KEYWORD_LOGGED_ERROR_CT = 'num_errors_logged'
 C.TYL_KEYWORD_RECENT_LOGGED_ERROR = 'recent_logged_error'
-
-
-# If the user didn't manually specify a working directory, clean up the directory we crated in the OS's tmp space.
-# TODO: Didn't work. Investigate or just rely on the OS doing this for us ... or do it as part of shutdown().
-# import atexit
-# @atexit.register
-# def __cleanup():
-#     if C.GIT_WORKING_PATH.startswith(tempfile.gettempdir()):
-#         import shutil
-#         shutil.rmtree(C.GIT_WORKING_PATH)
-#         print('Removed:', C.GIT_WORKING_PATH)

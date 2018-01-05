@@ -9,10 +9,9 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.1.4'
-_env = None  # TODO: thread-safe this variable(?)
+__version__ = '1.3.6'
+_env = None
 _backends = {}
-_post_processors = {}
 _allow_lock = True
 backend_service = Flask('PyTerraBackTyl')
 
@@ -41,22 +40,44 @@ def _json_string(obj):
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
     if new_state in C.LOCK_STATES.keys():
         if request.method == accepted_method:
-            if _backends[_env].__lock_state__ in accepted_states:
-                old_state = _backends[_env].__lock_state__
-                _backends[_env].__lock_state__ = C.LOCK_STATE_INIT
+            if _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ in accepted_states:
+                old_state = _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_
+                _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_INIT
                 lock_text = request.data.decode() or '{}'
                 if set_backend_state(json.loads(lock_text), raw=lock_text):
                     logging.debug('Lock state set to %s' % new_state)
-                    _backends[_env].__lock_state__ = new_state
-                    return _json_string(_backends[_env].get_lock_state()), C.HTTP_OK
-                _backends[_env].__lock_state__ = old_state  # maintain the old/bad state.
+                    _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = new_state
+                    return _json_string(_backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()), C.HTTP_OK
+                _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = old_state  # maintain the old/bad state.
     # TODO: Lost connection during the last apply, race condition, or someone else changed state out-of-process.
     # TODO: Things are fucked up if the user got us here.
-    lock_state = _backends[_env].get_lock_state()
+    lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
     if lock_state:
         return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
     return 'I don\'t know, man. Something is really fucked up.',\
-           C.LOCK_STATES[_backends[_env].__lock_state__]
+           C.LOCK_STATES[_backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_]
+
+def _run_post_processors():
+    # Process the nonpersistant plugins (enabled, but not handling locking).
+    raw_data = request.data.decode()
+    args = (json.loads(raw_data),)
+    kwargs = {'raw': raw_data}
+
+    # Collect all the post-processor functions so we don't have to process this 'if' for every loop iteration.
+    if request.method == C.HTTP_METHOD_LOCK:
+        obj_funcs = [(pp, pp.on_locked) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+    elif request.method == C.HTTP_METHOD_UNLOCK:
+        obj_funcs = [(pp, pp.on_unlocked) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+    elif request.method == C.HTTP_METHOD_POST:
+        obj_funcs = [(pp, pp.process_tfstate) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+
+    for pp, func in obj_funcs:
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            pp._logged_errors_ += 1
+            pp._recent_error_ = str(e)
+            logging.error('%s: %s' % (pp.__class__.__name__, e))
 
 
 @backend_service.route('/lock', methods=[C.HTTP_METHOD_LOCK, C.HTTP_METHOD_GET])
@@ -64,18 +85,9 @@ def tf_lock():
     set_env_from_url()
     if _allow_lock:
         state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
-                                C.HTTP_METHOD_LOCK, _backends[_env].set_locked)
+                                C.HTTP_METHOD_LOCK, _backends[_env][C.TYL_KEYWORD_BACKEND].set_locked)
 
-        # TODO: This code block effectively exists in 3 places -- make it a function (1 of 3)
-        # Process the nonpersistant plugins (enabled, but not handling locking).
-        lock_text = request.data.decode()
-        for pp in _post_processors[_env]:
-            try:
-                pp.on_locked(json.loads(lock_text), raw=lock_text)
-            except Exception as e:
-                pp.__logged_errors__ += 1
-                pp.__recent_error__ = str(e)
-                logging.error('%s: %s' % (pp.__class__.__name__, e))
+        _run_post_processors()
 
         return state
     # Backend is shutting down. Return a 202 to say we got the request, but didn't do anything with it.
@@ -86,18 +98,9 @@ def tf_lock():
 def tf_unlock():
     set_env_from_url()
     state = _set_lock_state(C.LOCK_STATE_UNLOCKED, [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT],
-                            C.HTTP_METHOD_UNLOCK, _backends[_env].set_unlocked)
+                            C.HTTP_METHOD_UNLOCK, _backends[_env][C.TYL_KEYWORD_BACKEND].set_unlocked)
 
-    # TODO: This code block effectively exists in 3 places -- make it a function (2 of 3)
-    # Process the nonpersistant plugins (enabled, but not handling locking).
-    lock_text = request.data.decode()
-    for pp in _post_processors[_env]:
-        try:
-            pp.on_unlocked(json.loads(lock_text), raw=lock_text)
-        except Exception as e:
-            pp.__logged_errors__ += 1
-            pp.__recent_error__ = str(e)
-            logging.error('%s: %s' % (pp.__class__.__name__, e))
+    _run_post_processors()
 
     return state
 
@@ -109,22 +112,14 @@ def tf_backend():
     if request.method == 'POST':
         state_text = request.data.decode()
         state_obj = json.loads(state_text)
-        _backends[_env].store_tfstate(state_obj, raw=state_text)
+        _backends[_env][C.TYL_KEYWORD_BACKEND].store_tfstate(state_obj, raw=state_text)
         logging.info('Stored new tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
 
-        # TODO: This code block effectively exists in 3 places -- make it a function (3 of 3)
-        # Process the nonpersistant plugins (enabled, but not handling locking).
-        for pp in _post_processors[_env]:
-            try:
-                pp.process_tfstate(state_obj, raw=state_text)
-            except Exception as e:
-                pp.__logged_errors__ += 1
-                pp.__recent_error__ = str(e)
-                logging.error('%s: %s' % (pp.__class__.__name__, e))
+        _run_post_processors()
 
         return 'alrighty!', C.HTTP_OK
     else:
-        t = _backends[_env].get_tfstate()
+        t = _backends[_env][C.TYL_KEYWORD_BACKEND].get_tfstate()
         logging.info('Fetched tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
         return _json_string(t), C.HTTP_OK
 
@@ -134,33 +129,27 @@ def service_state():
     state = {
             C.TYL_KEYWORD_BACKEND_MODULE: C.BACKEND_CLASS,
             C.TYL_KEYWORD_POST_PROCESSOR_MODULES: C.POST_PROCESS_CLASSES,
-            C.TYL_KEYWORD_BACKEND: {
-                C.TYL_KEYWORD_ENVIRONMENTS: []
-                },
-            C.TYL_KEYWORD_POST_PROCESSORS: []
+            C.TYL_KEYWORD_ENVIRONMENTS: []
             }
 
     for env, backend in _backends.items():
-        state[C.TYL_KEYWORD_BACKEND][C.TYL_KEYWORD_ENVIRONMENTS].append(
-            {
-                C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
-                C.TYL_KEYWORD_LOCK_STATE: backend.__lock_state__,
-                C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend.__lock_state__],
-            }
-        )
+        env_state = {
+            C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
+            C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
+            C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
+            C.TYL_KEYWORD_POST_PROCESSORS: []
+        }
 
-    for env, post_processor in _post_processors.items():
-        for pp in post_processor:
-            state[C.TYL_KEYWORD_POST_PROCESSORS].append(
-                {env:
-                     {
-                         pp.__class__.__name__:{
-                             C.TYL_KEYWORD_LOGGED_ERROR_CT: pp.__logged_errors__,
-                             C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp.__recent_error__,
-                         }
-                     }
-                }
-        )
+        for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
+            env_pp_state = {
+                C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
+                C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
+                C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_
+            }
+
+            env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
+
+        state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
 
     return json.dumps(state, indent=2), C.HTTP_OK
 
@@ -172,7 +161,7 @@ def shutdown():
     if request.remote_addr == '127.0.0.1':
         _allow_lock = False
         for env, backend in _backends.items():
-            if backend.__lock_state__ in [C.LOCK_STATE_INIT, C.LOCK_STATE_LOCKED]:
+            if backend[C.TYL_KEYWORD_BACKEND]._lock_state_ in [C.LOCK_STATE_INIT, C.LOCK_STATE_LOCKED]:
                 _allow_lock = True
                 return 'False', C.HTTP_OK
         from os import getpid
@@ -191,12 +180,14 @@ def set_env_from_url():
     _env = request.values['env'] if 'env' in request.values else ''
     if _env not in _backends:
         # TODO: check for a URL endpoint and register it?
-        _backends[_env] = backend_class(_env, C, backend_service)
+        _backends[_env] = {}
+        _backends[_env][C.TYL_KEYWORD_BACKEND] = backend_class(_env, C, backend_service)
         # TODO: pass post processors a handle to their backend.
-        _post_processors[_env] = [c(_env, C, backend_service) for c in post_process_classes]
+        _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS] = [c(_env, C, _backends[_env]) for c in post_process_classes]
+        # _post_processors[_env] = [c(_env, C, _backends[_env]) for c in post_process_classes]
 
-        if _backends[_env].get_lock_state():
-            _backends[_env].__lock_state__ = C.LOCK_STATE_LOCKED
+        if _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state():
+            _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_LOCKED
 
 
 def _load_class(class_name, superclass):
@@ -209,7 +200,6 @@ def _load_class(class_name, superclass):
     paths += sys.path + C.BACKEND_PLUGINS_PATH
     sys.path = path_type(set(paths))
 
-    # class_parts = C.BACKEND_CLASS.split('.')
     class_parts = class_name.split('.')
     _class = import_module(class_parts[0])
     for module_part in class_parts[1:]:
@@ -234,5 +224,4 @@ if __name__ == '__main__':
     logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-    # PyTerraBackTYL().\
     backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)

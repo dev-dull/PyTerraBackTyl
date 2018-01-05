@@ -24,40 +24,40 @@ class Test_pyterrabacktyl(TestCase):
     def test_set_lock_state(self, mock_request):
         mock_request.method = C.HTTP_METHOD_LOCK
         mock_request.values = {'env': 'unittest'}
-        mock_request.data = bytes(pyterrabacktyl._backends['unittest']._tflock, 'ascii')
+        mock_request.data = bytes(pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, 'ascii')
 
         # Test locking from unlocked state.
         set_locked_value = pyterrabacktyl._set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
                                                           C.HTTP_METHOD_LOCK,
-                                                          pyterrabacktyl._backends['unittest'].set_locked)
-        self.assertEqual(set_locked_value, (pyterrabacktyl._backends['unittest']._tflock, C.HTTP_OK))
+                                                          pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND].set_locked)
+        self.assertEqual(set_locked_value, (pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, C.HTTP_OK))
 
         # Test locking when someone else has lock.
         set_locked_value = pyterrabacktyl._set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
                                                           C.HTTP_METHOD_LOCK,
-                                                          pyterrabacktyl._backends['unittest'].set_locked)
-        self.assertEqual(set_locked_value, (pyterrabacktyl._backends['unittest']._tflock, C.HTTP_CONFLICT))
+                                                          pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND].set_locked)
+        self.assertEqual(set_locked_value, (pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, C.HTTP_CONFLICT))
 
         # Test unlocking locked state
         mock_request.method = C.HTTP_METHOD_UNLOCK
         set_locked_value = pyterrabacktyl._set_lock_state(C.LOCK_STATE_UNLOCKED, [C.LOCK_STATE_LOCKED],
                                                           C.HTTP_METHOD_UNLOCK,
-                                                          pyterrabacktyl._backends['unittest'].set_unlocked)
+                                                          pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND].set_unlocked)
         self.assertEqual(set_locked_value, ('', C.HTTP_OK))
 
     @patch('pyterrabacktyl.request')
     def test_tf_lock(self, mock_request):
         mock_request.method = C.HTTP_METHOD_LOCK
         mock_request.values = {'env': 'unittest'}
-        mock_request.data = bytes(pyterrabacktyl._backends['unittest']._tflock, 'ascii')
+        mock_request.data = bytes(pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, 'ascii')
 
-        self.assertEqual(pyterrabacktyl.tf_lock(), (pyterrabacktyl._backends['unittest']._tflock, C.HTTP_OK))
+        self.assertEqual(pyterrabacktyl.tf_lock(), (pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, C.HTTP_OK))
 
     @patch('pyterrabacktyl.request')
     def test_tf_unlock(self, mock_request):
         mock_request.method = C.HTTP_METHOD_UNLOCK
         mock_request.values = {'env': 'unittest'}
-        mock_request.data = bytes(pyterrabacktyl._backends['unittest']._tflock, 'ascii')
+        mock_request.data = bytes(pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tflock, 'ascii')
 
         self.assertEqual(pyterrabacktyl.tf_unlock(), ('', C.HTTP_OK))
 
@@ -65,12 +65,12 @@ class Test_pyterrabacktyl(TestCase):
     def test_tf_backend(self, mock_request):
         mock_request.method = C.HTTP_METHOD_POST
         mock_request.values = {'env': 'unittest'}
-        mock_request.data = bytes(pyterrabacktyl._backends['unittest']._tfstate, 'ascii')
+        mock_request.data = bytes(pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tfstate, 'ascii')
 
         self.assertEqual(pyterrabacktyl.tf_backend(), ('alrighty!', C.HTTP_OK))
 
         mock_request.method = 'GET'
-        self.assertEqual(pyterrabacktyl.tf_backend(), (pyterrabacktyl._backends['unittest']._tfstate, C.HTTP_OK))
+        self.assertEqual(pyterrabacktyl.tf_backend(), (pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND]._tfstate, C.HTTP_OK))
 
     def test_service_state(self):
         # self.assertEqual(pyterrabacktyl.service_state(), 'moo')
@@ -103,9 +103,7 @@ class Test_pyterrabacktyl(TestCase):
         pyterrabacktyl.set_env_from_url()
         self.assertEqual(pyterrabacktyl._env, 'unittest')
         self.assertTrue('unittest' in pyterrabacktyl._backends)
-        self.assertTrue(isinstance(pyterrabacktyl._backends['unittest'], TYLPersistent))
-        self.assertTrue('unittest' in pyterrabacktyl._post_processors)
-        self.assertEqual(pyterrabacktyl._post_processors['unittest'], [])
+        self.assertTrue(isinstance(pyterrabacktyl._backends['unittest'][C.TYL_KEYWORD_BACKEND], TYLPersistent))
 
     def test_load_class(self):
         obj_type = pyterrabacktyl._load_class('bogus_backend.BogusBackend', TYLPersistent)

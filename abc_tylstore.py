@@ -1,6 +1,8 @@
 import abc
 from CONSTS import C
 
+__version__ = '0.1.5'
+
 
 class TYLHelpers(object):
     @classmethod
@@ -19,8 +21,7 @@ class TYLHelpers(object):
 
 class TYLPersistent(object):
     __metaclass__ = abc.ABCMeta
-    # TODO: Assignment to this variable from pyterrabacktyl is probably duck-typing in a new variable.
-    __lock_state__ = C.LOCK_STATE_UNLOCKED
+    _lock_state_ = C.LOCK_STATE_UNLOCKED
 
     @abc.abstractmethod
     def set_locked(self, state_obj, raw=''):
@@ -65,9 +66,8 @@ class TYLPersistent(object):
 
 class TYLNonpersistent(object):
     __metaclass__ = abc.ABCMeta
-    # TODO: Assignment to these variables from pyterrabacktyl is probably duck-typing in a new variable.
-    __logged_errors__ = 0
-    __recent_error__ = ''
+    _logged_errors_ = 0
+    _recent_error_ = ''
 
     @abc.abstractmethod
     def on_locked(self, state_obj, raw=''):
