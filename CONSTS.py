@@ -105,14 +105,3 @@ C.TYL_KEYWORD_LOCK_STATE = 'lock_state'
 C.TYL_KEYWORD_HTTP_STATE = 'http_state'
 C.TYL_KEYWORD_LOGGED_ERROR_CT = 'num_errors_logged'
 C.TYL_KEYWORD_RECENT_LOGGED_ERROR = 'recent_logged_error'
-
-
-# If the user didn't manually specify a working directory, clean up the directory we crated in the OS's tmp space.
-# TODO: Didn't work. Investigate or just rely on the OS doing this for us ... or do it as part of shutdown().
-# import atexit
-# @atexit.register
-# def __cleanup():
-#     if C.GIT_WORKING_PATH.startswith(tempfile.gettempdir()):
-#         import shutil
-#         shutil.rmtree(C.GIT_WORKING_PATH)
-#         print('Removed:', C.GIT_WORKING_PATH)

@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.2.6'
+__version__ = '1.3.6'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -57,6 +57,28 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
     return 'I don\'t know, man. Something is really fucked up.',\
            C.LOCK_STATES[_backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_]
 
+def _run_post_processors():
+    # Process the nonpersistant plugins (enabled, but not handling locking).
+    raw_data = request.data.decode()
+    args = (json.loads(raw_data),)
+    kwargs = {'raw': raw_data}
+
+    # Collect all the post-processor functions so we don't have to process this 'if' for every loop iteration.
+    if request.method == C.HTTP_METHOD_LOCK:
+        obj_funcs = [(pp, pp.on_locked) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+    elif request.method == C.HTTP_METHOD_UNLOCK:
+        obj_funcs = [(pp, pp.on_unlocked) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+    elif request.method == C.HTTP_METHOD_POST:
+        obj_funcs = [(pp, pp.process_tfstate) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
+
+    for pp, func in obj_funcs:
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            pp._logged_errors_ += 1
+            pp._recent_error_ = str(e)
+            logging.error('%s: %s' % (pp.__class__.__name__, e))
+
 
 @backend_service.route('/lock', methods=[C.HTTP_METHOD_LOCK, C.HTTP_METHOD_GET])
 def tf_lock():
@@ -65,16 +87,7 @@ def tf_lock():
         state = _set_lock_state(C.LOCK_STATE_LOCKED, [C.LOCK_STATE_UNLOCKED],
                                 C.HTTP_METHOD_LOCK, _backends[_env][C.TYL_KEYWORD_BACKEND].set_locked)
 
-        # TODO: This code block effectively exists in 3 places -- make it a function (1 of 3)
-        # Process the nonpersistant plugins (enabled, but not handling locking).
-        lock_text = request.data.decode()
-        for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]:
-            try:
-                pp.on_locked(json.loads(lock_text), raw=lock_text)
-            except Exception as e:
-                pp._logged_errors_ += 1
-                pp._recent_error_ = str(e)
-                logging.error('%s: %s' % (pp.__class__.__name__, e))
+        _run_post_processors()
 
         return state
     # Backend is shutting down. Return a 202 to say we got the request, but didn't do anything with it.
@@ -87,16 +100,7 @@ def tf_unlock():
     state = _set_lock_state(C.LOCK_STATE_UNLOCKED, [C.LOCK_STATE_LOCKED, C.LOCK_STATE_INIT],
                             C.HTTP_METHOD_UNLOCK, _backends[_env][C.TYL_KEYWORD_BACKEND].set_unlocked)
 
-    # TODO: This code block effectively exists in 3 places -- make it a function (2 of 3)
-    # Process the nonpersistant plugins (enabled, but not handling locking).
-    lock_text = request.data.decode()
-    for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]:
-        try:
-            pp.on_unlocked(json.loads(lock_text), raw=lock_text)
-        except Exception as e:
-            pp._logged_errors_ += 1
-            pp._recent_error_ = str(e)
-            logging.error('%s: %s' % (pp.__class__.__name__, e))
+    _run_post_processors()
 
     return state
 
@@ -111,15 +115,7 @@ def tf_backend():
         _backends[_env][C.TYL_KEYWORD_BACKEND].store_tfstate(state_obj, raw=state_text)
         logging.info('Stored new tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
 
-        # TODO: This code block effectively exists in 3 places -- make it a function (3 of 3)
-        # Process the nonpersistant plugins (enabled, but not handling locking).
-        for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]:
-            try:
-                pp.process_tfstate(state_obj, raw=state_text)
-            except Exception as e:
-                pp._logged_errors_ += 1
-                pp._recent_error_ = str(e)
-                logging.error('%s: %s' % (pp.__class__.__name__, e))
+        _run_post_processors()
 
         return 'alrighty!', C.HTTP_OK
     else:
@@ -154,7 +150,6 @@ def service_state():
             env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
 
         state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
-
 
     return json.dumps(state, indent=2), C.HTTP_OK
 
@@ -229,5 +224,4 @@ if __name__ == '__main__':
     logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-    # PyTerraBackTYL().\
     backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)
