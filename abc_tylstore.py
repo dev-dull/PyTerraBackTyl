@@ -63,6 +63,12 @@ class TYLPersistent(object):
         """
         pass
 
+    def backend_status(self):
+        """
+        :return: Health and status information in a JSON compatible format.
+        """
+        return None
+
 
 class TYLNonpersistent(object):
     __metaclass__ = abc.ABCMeta

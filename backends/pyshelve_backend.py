@@ -2,9 +2,9 @@ import os
 import shelve
 import logging
 
-from abc_tylstore import TYLPersistent
+from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '0.1.4'
+__version__ = '0.2.0'
 
 
 class _lazyShelf(object):
@@ -35,12 +35,11 @@ class _lazyShelf(object):
 
 
 class PyShelveBackend(TYLPersistent):
-    def __init__(self, environment, constants, parent):
+    def __init__(self, environment, constants, **kwargs):
         self.C = constants
         self.C.TFSTATE_KEYWORD = 'TFSTATE'
         self.C.LOCK_STATE_KEYWORD = 'LOCK_STATE'
         self.ENV = environment
-        self.parent = parent
 
         self.tfstate_file_name = os.sep.join([self.C.PYSHELVE_DATA_PATH, self.ENV+self.C.PYSHELVE_DB_FILE_NAME])
         self.tfstate_shelf = _lazyShelf(self.tfstate_file_name)
@@ -77,3 +76,13 @@ class PyShelveBackend(TYLPersistent):
 
     def get_tfstate(self):
         return self.tfstate_shelf[self.C.TFSTATE_KEYWORD]
+
+    def backend_status(self):
+        return {
+            'filename': self.tfstate_file_name,
+            'tfstate_obj_key': self.C.TFSTATE_KEYWORD,
+            'lock_state_obj_key': self.C.LOCK_STATE_KEYWORD,
+            'tfstate_exists': bool(self.tfstate_shelf[self.C.TFSTATE_KEYWORD]),
+            'locked': self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf,
+            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.tfstate_shelf[self.C.TFSTATE_KEYWORD])
+        }
