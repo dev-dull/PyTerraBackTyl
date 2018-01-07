@@ -5,16 +5,15 @@ import logging
 import tempfile
 
 from collections import defaultdict
-from abc_tylstore import TYLPersistent
+from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.1.3'
+__version__ = '1.2.0'
 
 
 class GitBackend(TYLPersistent):
-    def __init__(self, environment, constants, parent):
+    def __init__(self, environment, constants):
         self.C = constants
         self.ENV = environment if environment else self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
-        self.parent = parent
 
         # I don't like keeping this here, but this info isn't sent with the current tfstate
         # and I want to keep the commit messages relevant to who has the current lock.
@@ -106,12 +105,12 @@ class GitBackend(TYLPersistent):
             scrollback = -1 * abs(int(self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK))
         except ValueError:
             logging.error('Scrollback value %s is not an integer. Using 300.' % self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK)
-            scrollback = 300
+            scrollback = -300
 
         if os.path.exists(self.logfile):
             foutin = open(self.logfile, 'r+')
             log_lines = foutin.read().splitlines()[scrollback:]
-            foutin.seek(0)
+            foutin.seek(0)  # TODO: this looks redundant to the below seek(0)
         else:
             foutin = open(self.logfile, 'w')
             log_lines = []
@@ -166,3 +165,11 @@ class GitBackend(TYLPersistent):
             return tfstate
         except Exception as e:
             raise e
+
+    def backend_status(self):
+        return {
+            'repository_path': self.working_dir,
+            'locked': os.path.exists(self.lockfile),
+            'tfstate_exists': bool(self.get_tfstate()),
+            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.get_tfstate())
+        }

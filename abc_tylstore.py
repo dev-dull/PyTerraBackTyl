@@ -7,7 +7,11 @@ __version__ = '0.1.5'
 class TYLHelpers(object):
     @classmethod
     def get_hostnames_from_tfstate(cls, json_obj):
+        import json
         from jsonpath import jsonpath
+
+        if isinstance(json_obj, str):
+            json_obj = json.loads(json_obj)
 
         path = '$.modules[*].resources.[?(@.type in ["%s"])].type' % '", "'.join(C.HELPER_HOSTNAME_QUERY_MAP.keys())
         resource_types = set(jsonpath(json_obj, path) or [])
@@ -63,6 +67,12 @@ class TYLPersistent(object):
         """
         pass
 
+    def backend_status(self):
+        """
+        :return: Health and status information in a JSON compatible format.
+        """
+        return None
+
 
 class TYLNonpersistent(object):
     __metaclass__ = abc.ABCMeta
@@ -94,3 +104,9 @@ class TYLNonpersistent(object):
         :return:
         """
         pass
+
+    def post_processor_status(self):
+        """
+        :return: Health and status information in a JSON compatible format.
+        """
+        return None

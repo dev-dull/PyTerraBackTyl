@@ -49,8 +49,8 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
                     _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = new_state
                     return _json_string(_backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()), C.HTTP_OK
                 _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = old_state  # maintain the old/bad state.
-    # TODO: Lost connection during the last apply, race condition, or someone else changed state out-of-process.
-    # TODO: Things are fucked up if the user got us here.
+    # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
+    # Things are fucked up if the user got us here.
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
     if lock_state:
         return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
@@ -137,6 +137,7 @@ def service_state():
             C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
             C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
             C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
+            C.TYL_KEYWORD_BACKEND_STATUS: backend[C.TYL_KEYWORD_BACKEND].backend_status(),
             C.TYL_KEYWORD_POST_PROCESSORS: []
         }
 
@@ -144,7 +145,7 @@ def service_state():
             env_pp_state = {
                 C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
                 C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
-                C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_
+                C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
             }
 
             env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
@@ -179,12 +180,9 @@ def set_env_from_url():
     global _env
     _env = request.values['env'] if 'env' in request.values else ''
     if _env not in _backends:
-        # TODO: check for a URL endpoint and register it?
         _backends[_env] = {}
-        _backends[_env][C.TYL_KEYWORD_BACKEND] = backend_class(_env, C, backend_service)
-        # TODO: pass post processors a handle to their backend.
-        _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS] = [c(_env, C, _backends[_env]) for c in post_process_classes]
-        # _post_processors[_env] = [c(_env, C, _backends[_env]) for c in post_process_classes]
+        _backends[_env][C.TYL_KEYWORD_BACKEND] = backend_class(_env, C)
+        _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS] = [c(_env, C) for c in post_process_classes]
 
         if _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state():
             _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_LOCKED
