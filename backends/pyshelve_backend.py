@@ -48,6 +48,11 @@ class PyShelveBackend(TYLPersistent):
             self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = ''
 
     def set_locked(self, state_obj, **kwargs):
+        """
+        :param state_obj: Object (from json) with the lock ID and details of who made the lock.
+        :param kwargs: Includes 'raw' which has the json text as a string (str)
+        :return: True on successful lock, False if something prevented the lock from happening.
+        """
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
             logging.warning('Failed to obtain lock for ENV %s, already locked' % self.ENV)
             return False
@@ -57,6 +62,13 @@ class PyShelveBackend(TYLPersistent):
         return True
 
     def set_unlocked(self, state_obj, **kwargs):
+        """
+        :param state_obj: Object (from json) with the lock ID and details of who made the lock.
+        :param kwargs: Includes 'raw' which has the json text as a string (str)
+        :return: True on successful unlock.
+                 False when the environment was somehow already unlocked.
+                 A return value of False should never happen and indicates a bug with the backend or PyTerraBackTYL.
+        """
         # Terraform doesn't currently send the lock ID when a force-unlock is done.
         # If they fix that, then we should compare lock IDs before unlocking.
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
@@ -66,18 +78,32 @@ class PyShelveBackend(TYLPersistent):
         return False
 
     def get_lock_state(self):
+        """
+        :return: The request/JSON string provided by terraform of the current lock (the value received in set_locked()),
+                 Return an empty string if there is no lock.
+        """
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
             return self.tfstate_shelf[self.C.LOCK_STATE_KEYWORD]
         return ''
 
     def store_tfstate(self, tfstate_obj, **kwargs):
+        """
+        :param tfstate_obj: JSON string of the current terraform.tfstate file.
+        :param kwargs: Includes 'raw' which has the json text as a string (str)
+        """
         self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = tfstate_obj
         logging.debug('Saved state file for env %s' % self.ENV)
 
     def get_tfstate(self):
+        """
+        :return: Object or JSON formatted string of the current terraform.tfstate file (the value received in store_tfstate()).
+        """
         return self.tfstate_shelf[self.C.TFSTATE_KEYWORD]
 
     def backend_status(self):
+        """
+        :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
+        """
         return {
             'filename': self.tfstate_file_name,
             'tfstate_obj_key': self.C.TFSTATE_KEYWORD,
