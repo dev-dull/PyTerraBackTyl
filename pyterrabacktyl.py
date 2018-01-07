@@ -180,12 +180,9 @@ def set_env_from_url():
     global _env
     _env = request.values['env'] if 'env' in request.values else ''
     if _env not in _backends:
-        # TODO: check for a URL endpoint and register it?
         _backends[_env] = {}
         _backends[_env][C.TYL_KEYWORD_BACKEND] = backend_class(_env, C)
-        # TODO: pass post processors a handle to their backend.
         _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS] = [c(_env, C) for c in post_process_classes]
-        # _post_processors[_env] = [c(_env, C, _backends[_env]) for c in post_process_classes]
 
         if _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state():
             _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_LOCKED

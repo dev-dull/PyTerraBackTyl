@@ -105,12 +105,12 @@ class GitBackend(TYLPersistent):
             scrollback = -1 * abs(int(self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK))
         except ValueError:
             logging.error('Scrollback value %s is not an integer. Using 300.' % self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK)
-            scrollback = 300
+            scrollback = -300
 
         if os.path.exists(self.logfile):
             foutin = open(self.logfile, 'r+')
             log_lines = foutin.read().splitlines()[scrollback:]
-            foutin.seek(0)
+            foutin.seek(0)  # TODO: this looks redundant to the below seek(0)
         else:
             foutin = open(self.logfile, 'w')
             log_lines = []
