@@ -4,7 +4,8 @@ BACKEND_SERVICE_PORT: 2442
 
 BACKEND_PLUGINS_PATH: 'backends'
 BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
-POST_PROCESS_CLASSES: []
+POST_PROCESS_CLASSES:
+  - 'slack_notify_post_processor.SlackNotifyPostProcessor'
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
 
@@ -23,3 +24,30 @@ PYSHELVE_DATA_PATH: '/opt/pyterrabacktyl/data'
 # The filename for the tfstate shelf objects -- the environment name will be prepended
 # e.g. for environment TEST, file name will be TEST_terraform_state
 PYSHELVE_DB_FILE_NAME: '_terraform_state'
+
+##
+##  slack_notify_post_processor.SlackNotifyPostProcessor configuration
+##
+
+# Generate a Slack Webhook for the desired room and use it below.
+SLACK_WEBHOOK_URI: https://hooks.slack.com/services/XXXXXXXXX/XXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXX
+
+# The the image to use for the user icon
+SLACK_NOTIFY_USER_IMAGE_URI: http://www.devdull.lol/pyterrabacktyl/pyterrabacktyl_logo_square.png
+# The username to post as
+SLACK_NOTIFY_USERNAME: PyTerraBackTYL
+
+# Which `terraform <command>` operations to notify Slack for.
+SLACK_NOTIFICATIONS_ON_TF_ACTIONS:
+  - OperationTypeApply
+#  - OperationTypePlan
+
+# When true, will post a list of the hosts found in the newest terraform state.
+SLACK_NOTIFY_HOST_LIST: true
+# When true, will post a notification when the user has release the lock.
+SLACK_NOTIFY_UNLOCK: true
+
+# Formatting of the message strings to post in Slack.
+# The use of double quotes (e.g. "hello\nworld") is required for '\n' to be evaluated as a newline.
+SLACK_NOTIFY_FORMAT: "_Who:_ *{Who}*\n_Operation:_ *{Operation}*\n_Version:_ {Version}\n_ID:_ {ID}"
+SLACK_NOTIFY_UNLOCK_FORMAT: "_Who:_ *{Who}*\n_ID:_ {ID}"
