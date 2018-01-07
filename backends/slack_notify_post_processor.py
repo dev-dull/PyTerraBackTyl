@@ -40,7 +40,7 @@ class SlackNotifyPostProcessor(TYLNonpersistent):
         """
         :param state_obj: Object (from json) with the lock ID and details of who made the lock.
         :param kwargs: Includes 'raw' json object as text (str)
-\        """
+        """
         if self.lock_info['Operation'] in self.C.SLACK_NOTIFICATIONS_ON_TF_ACTIONS and self.C.SLACK_NOTIFY_UNLOCK:
             self._post_to_slack(self.C.SLACK_NOTIFY_UNLOCK_FORMAT.format(**defaultdict(str, self.lock_info)), '*Unlock*')
         self.lock_info = {}

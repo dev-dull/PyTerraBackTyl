@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.1.3'
+__version__ = '1.2.0'
 
 
 class GitBackend(TYLPersistent):
