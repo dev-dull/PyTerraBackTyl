@@ -1,12 +1,15 @@
 import abc
 from CONSTS import C
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 
 class TYLHelpers(object):
     @classmethod
     def get_hostnames_from_tfstate(cls, json_obj):
+        if not json_obj:
+            return []
+
         import json
         from jsonpath import jsonpath
 
