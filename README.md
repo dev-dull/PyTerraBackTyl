@@ -200,7 +200,7 @@ PyTerraBackTYL was developed with the expectation that you're looking at this pr
 ---
 
 Import `TYLPersistent` and define your subclass:
-```
+```python
 from abc_tylstore import TYLPersistent
 class MyPersistentBackend(TYLPersistent):...
 ```
@@ -276,14 +276,14 @@ Similarly to how custom backend modules are managed, you can also create a `TYLN
 ---
 
 Example `config.yaml` configuration for multiple non-persistent backends:
-```
+```yaml
 POST_PROCESS_CLASSES:
   - 'zenoss_post_processor.ZenossPostProcessor'
   - 'slack_notify_post_processor.SlackNotifyPostProcessor'
 ```
 
 Import `TYLNonpersistent` and define your subclass:
-```
+```python
 from abc_tylstore import TYLNonpersistent
 class MyNonpersistentBackend(TYLNonpersistent):...
 ```
