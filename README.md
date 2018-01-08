@@ -2,13 +2,14 @@
 ![PyTerraBackTYL logo](http://www.devdull.lol/pyterrabacktyl/pyterrabacktyl_logo_v2.png)
 
 ## About:
-PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state file, `terraform.tfstate`.
+PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing your Terraform state and locking in whatever way you see fit. By default, PyTerraBackTYL comes with plugins to manage locking and state using Git, or using simple 'shelve' objects to persist to disk. Additionally, non-persistent plugins can be used to automate tasks when a user has issued a `terraform` command, such as automatically adding the new hosts into monitoring, or pushing notifications to Slack like in the provided example.
 
 ## Setup:
 ### Requirements:
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
-  - Flask
-  - Yaml
+  - flask
+  - pyyaml
+  - jsonpath
 
 ### Installation instructions:
 #### Install PyTerraBackTYL:
@@ -27,7 +28,7 @@ PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state f
     - Update your local apt cache data: `apt-get update`
     - Install Python 3.x: `apt-get install python3 python3-pip`
 - Create the directories and service account for PyTerraBackTYL:
-    - Create the non-privileged user that will run the PyTerraBackTYL service: `adduser tfbackendsvc` (this also creates a directory for the user in `/home` which you will likely need.)
+    - Create the non-privileged user that will run the PyTerraBackTYL service: `adduser tfbackendsvc` (this also creates a directory for the user in `/home` which you will need.)
     - Create the directory the PyTerrBackTYL service will run from: `mkdir /opt/pyterrabacktyl`
     - Create the directory the service will store Terraform states in: `mkdir /opt/pyterrabacktyl/data`
     - Set directory ownership: `chown -R tfbackendsvc /opt/pyterrabacktyl`
@@ -40,8 +41,7 @@ PyTerraBackTYL is a generic HTTP/REST backend for storing your Terraform state f
       - _Note_: Depending on your OS and Python installation method, the `pip3` command may be something like, `pip3.6`.
       - _Note_: Omit the `--user` flag and run as root if you want these libraries to be accessible to all users on the system.
       - `pip3 install setuptools --user` requried to install Flask.
-      - `pip3 install flask pyyaml --user`
-      - `pip3 install jsonpath --user` optional, but recommended.
+      - `pip3 install flask pyyaml jsonpath --user`
 
 #### Configuring PyTerraBackTYL:
 The contents of the `config.yaml` configuration file will largely depend on which backend module you choose to
@@ -58,13 +58,35 @@ Modify `config.yaml` and set the following items to the desired values.
 - `BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'`
   - The file and class name of the PyTerraBackTYL plugin to use; Python will look in a file called `pyshelve_backend.py`
   for the class `PyShelveBackend`
+- `POST_PROCESS_CLASSES: ['slack_notify_post_processor.SlackNotifyPostProcessor']`
+  - A list where each item contains a file and class name of a PyTerraBackTYL nonpersistent plugin to use; Python will look in a file called `slack_notify_post_processor.py`
+  for the class `SlackNotifyPostProcessor`. Set this to an empty list (i.e. `[]`) if you do not wish to use any post-processors.
 - `LOG_LEVEL: 'INFO'`
-  - The amount of info to log. Valid values are: INFO, DEBUG, WARNING, ERROR
+  - The amount of information to log. Valid values are: INFO, DEBUG, WARNING, ERROR
   - If an invalid value is specified, PyTerraBackTYL will default to INFO.
 - `HELPER_HOSTNAME_QUERY_MAP:`
   - Generally, this should not need to be changed.
   - Contains key:value pairs where the key is the name of a Terraform provider (an exact match for what is found in a Terraform state file) and the value is a JSONPath that will return the hostnames found in a Terraform state file for that provider type.
   - This configuration is used by the `TYLHelpers.get_hostnames_from_tfstate` function (`from abc_tylstore import TYLHelpers`)
+
+##### Full example configuration for the PyTerraBackTYL service.  
+```yaml
+## IP and ports to listen on. Defaults shown.
+BACKEND_SERVICE_IP: '0.0.0.0'
+BACKEND_SERVICE_PORT: 2442
+
+BACKEND_PLUGINS_PATH: 'backends'
+BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
+POST_PROCESS_CLASSES:
+  - 'slack_notify_post_processor.SlackNotifyPostProcessor'
+
+LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
+
+# Key:Value pairs where the key matches a Terraform provider, and key is a jsonPath to fetch hostnames from the terraform state
+HELPER_HOSTNAME_QUERY_MAP:
+  digitalocean_droplet: 'modules[*].resources.*.primary.attributes.name'
+  vsphere_virtual_machine: '$.modules[*].resources.[?(@.type == "vsphere_virtual_machine")].primary[?(@.memory != 0)].name'
+```
 
 #### Configuring the PyTerraBackTYL backend plugin:
 ##### Option 1: Configuring the PyShelveBackend (default backend module):
@@ -78,6 +100,20 @@ Modify `config.yaml` and set the following items to the desired values.
 - `PYSHELVE_DB_FILE_NAME: '_terraform_state'`
   - The file name to use for Python 'shelve' oblects.
   - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'QA_terraform_state' will be created).
+
+###### Full example configuration for the PyShelveBackend module:
+```yaml
+##
+##  pyshelve_backend.PyShelveBackend configuration
+##
+
+# The path to where the python shelf objects should be saved (no trailing slash).
+PYSHELVE_DATA_PATH: '/opt/pyterrabacktyl/data'
+
+# The filename for the tfstate shelf objects -- the environment name will be prepended
+# e.g. for environment TEST, file name will be TEST_terraform_state
+PYSHELVE_DB_FILE_NAME: '_terraform_state'
+```
 
 ##### Option 2: Setup and Configure the GitBackend module:
 - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`)
@@ -122,11 +158,37 @@ Modify `config.yaml` and set the following items to the desired values.
     - `GIT_STATE_CHANGE_LOG_FORMAT: '{Created} - {Operation}: {Who} {ID}'`
       - The details to record in the log file commited alongside terraform.tfstate
       - See the list of values for the commit message for valid values here.
-  - Start and test the PyTerraBackTYL service
-    - `su tfbackendsvc`
-    - `cd /opt/pyterrabacktyl/PyTerraBackTyl`
-    - `nohup python3 pyterrabacktyl.py 2>&1 > pyterrabacktyl.log &`
-    - `curl http://localhost:2442/state`
+
+###### Full example configuration for GitBackend
+```yaml
+##
+##  git_backend.GitBackend configuration
+##
+
+## --- Optional settings: ---
+GIT_WORKING_PATH: null  # Let the app create one in the temp directory of the OS.
+
+## --- REQUIRED settings! ---
+# The SSH repo to use to store tfstate, lock status, and logs.
+GIT_REPOSITORY: 'git@github.com:dev-dull/backend_test.git'  # No HTTP/S yet.
+
+# The branch to clone when creating a new environment with Terraform.
+GIT_DEFAULT_CLONE_BRANCH: 'origin/master'
+
+# The format to use for commit messages. Options are case sensitive.
+# Valid values: ID, Operation, Info, Who, Version, Created, Path
+GIT_COMMIT_MESSAGE_FORMAT: '{Who}, {Operation} - {ID}'
+
+# Maximum number of log messages to keep in the GIT_STATE_CHANGE_LOG_FILENAME file.
+GIT_STATE_CHANGE_LOG_SCROLLBACK: 300
+
+# Name of the log file to commit to record locks/unlocks
+GIT_STATE_CHANGE_LOG_FILENAME: 'state_change.log'
+
+# The format to use for logging messages. Options are case sensitive.
+# Valid values: ID, Operation, Info, Who, Version, Created, Path
+GIT_STATE_CHANGE_LOG_FORMAT: '{Created} - {Operation}: {Who} {ID}'
+```
 
 ##### Option 3: Create your own backend module:
 PyTerraBackTYL was developed with the expectation that you're looking at this project because you would like to manage your Terraform state file in a method not already handled by one of the standard backends. For this reason, PyTerraBackTYL allows you to implement your own backend handler. The following is a brief outline on how to implement a custom backend module. Refer to the [PyShelveBacked](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/pyshelve_backend.py) class for an example.
@@ -138,16 +200,16 @@ PyTerraBackTYL was developed with the expectation that you're looking at this pr
 ---
 
 Import `TYLPersistent` and define your subclass:
-```
+```python
 from abc_tylstore import TYLPersistent
 class MyPersistentBackend(TYLPersistent):...
 ```
 
 Implement the following functions in your class:
-- `__init__(self, environment, constants, *args, **kwargs):`
+- `__init__(self, environment, constants, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
-  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+  - `**kwargs` It is recommended to add this to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
 - `def set_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
@@ -164,10 +226,29 @@ Implement the following functions in your class:
   - No return value. Return `None` if needed.
 - `def get_tfstate(self):`
   - **RETURNS**: The string (`str`) or JSON compatible object of the Terraform state (the value received in `store_tfstate()`).
+- `def backend_status(self):` _OPTIONAL_
+  - **RETURNS**: A JSON compatible object containing health and status information about the backend. This is a good place to report where data is being stored and lock state for the environment.
+
+#### Start and test the PyTerraBackTYL service
+- `su tfbackendsvc`
+- `cd /opt/pyterrabacktyl/PyTerraBackTyl`
+- `./start.sh` Modify this script to change the location of log file if needed.
+- `curl -s http://localhost:2442/state` Check the current state of the backend. When first started, output will appear similar to the below.
+
+```json
+{
+  "backend_module": "pyshelve_backend.PyShelveBackend",
+  "post_processor_modules": [
+    "zenoss_post_processor.ZenossPostProcessor",
+    "slack_notify_post_processor.SlackNotifyPostProcessor"
+  ],
+  "environments": []
+}
+```
 
 #### Configure your Terraform project to use the PyTerraBackTYL Service:
 In your project, configure the HTTP backend service:
-```
+```hcl
 terraform {
   backend "http" {
     address = "http://localhost:2442/?env=DEVTEST"
@@ -186,7 +267,7 @@ Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is 
 ---
 
 ### *Optional:* Create a non-persistent, 'post-processor' backend:
-Similarly to how custom backend modules are managed, you can also create a `TYLNonpersistent` backend. These are optional backends that don't store any locking or state data, but rather allow you the opportunity to parse the Terraform lock and state files to perform other actions. Examples of tasks you may want to perform with a non-persistent backed include adding new hosts to monitoring, generating a chat notification that a user has performed an action, generating a report email containing a list of new hostnames, etc. These non-persistent backends should be kept in the same directory as the persistent backends (e.g. the `backends` directory).
+Similarly to how custom backend modules are managed, you can also create a `TYLNonpersistent` backend. These are optional backends that don't store any locking or state data, but rather allow you the opportunity to parse the Terraform lock and state files to perform other actions. Examples of tasks you may want to perform with a non-persistent backed include adding new hosts to monitoring, generating a chat notification that a user has performed an action, generating a report email containing a list of new hostnames, etc. These non-persistent backends should be kept in the same directory as the persistent backends (e.g. the `backends` directory). You can reference the [SlackNotifyPostProcessor](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/slack_notify_post_processor.py) as an example.
 
 ---
 
@@ -195,23 +276,23 @@ Similarly to how custom backend modules are managed, you can also create a `TYLN
 ---
 
 Example `config.yaml` configuration for multiple non-persistent backends:
-```
+```yaml
 POST_PROCESS_CLASSES:
   - 'zenoss_post_processor.ZenossPostProcessor'
   - 'slack_notify_post_processor.SlackNotifyPostProcessor'
 ```
 
 Import `TYLNonpersistent` and define your subclass:
-```
+```python
 from abc_tylstore import TYLNonpersistent
 class MyNonpersistentBackend(TYLNonpersistent):...
 ```
 
 Implement the following functions in your class:
-- `__init__(self, environment, constants, *args, **kwargs):`
+- `__init__(self, environment, constants, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant.
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_POST_PROCESSOR_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_POST_PROCESSOR_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
-  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+  - `**kwargs` It is recommended to add this to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
 - `def on_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
@@ -224,3 +305,9 @@ Implement the following functions in your class:
   - `tfstate_obj` Unpacked JSON (`dict`) which specifies the current terraform state (`terraform.tfstate`)
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
   - No return value. Return `None` if needed.
+- `def post_processor_status(self):` _OPTIONAL_
+  - **RETURNS**: A JSON compatible object containing health and status information about the backend. This is a good place to report where data is being stored.
+  
+### Troubleshooting:
+- As always, check the log. If you haven't modified the default start script, a new subdirectory called `logs` will be created in the same location as the script.
+- Check what information is found in the `/state` endpoint. You can monitor state changes with the command `watch -d "curl -s http://localhost:2442/state"`.
