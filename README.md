@@ -28,7 +28,7 @@ PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing you
     - Update your local apt cache data: `apt-get update`
     - Install Python 3.x: `apt-get install python3 python3-pip`
 - Create the directories and service account for PyTerraBackTYL:
-    - Create the non-privileged user that will run the PyTerraBackTYL service: `adduser tfbackendsvc` (this also creates a directory for the user in `/home` which you will likely need.)
+    - Create the non-privileged user that will run the PyTerraBackTYL service: `adduser tfbackendsvc` (this also creates a directory for the user in `/home` which you will need.)
     - Create the directory the PyTerrBackTYL service will run from: `mkdir /opt/pyterrabacktyl`
     - Create the directory the service will store Terraform states in: `mkdir /opt/pyterrabacktyl/data`
     - Set directory ownership: `chown -R tfbackendsvc /opt/pyterrabacktyl`
@@ -37,7 +37,6 @@ PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing you
       - `cd /opt/pyterrabacktyl`
       - `su tfbackendsvc`
       - `git clone https://github.com/dev-dull/PyTerraBackTyl.git`
-      - `mkdir data` This is the default location to save state and locking data.
     - Install the required Python Libraries:
       - _Note_: Depending on your OS and Python installation method, the `pip3` command may be something like, `pip3.6`.
       - _Note_: Omit the `--user` flag and run as root if you want these libraries to be accessible to all users on the system.
@@ -63,7 +62,7 @@ Modify `config.yaml` and set the following items to the desired values.
   - A list where each item contains a file and class name of a PyTerraBackTYL nonpersistent plugin to use; Python will look in a file called `slack_notify_post_processor.py`
   for the class `SlackNotifyPostProcessor`. Set this to an empty list (i.e. `[]`) if you do not wish to use any post-processors.
 - `LOG_LEVEL: 'INFO'`
-  - The amount of info to log. Valid values are: INFO, DEBUG, WARNING, ERROR
+  - The amount of information to log. Valid values are: INFO, DEBUG, WARNING, ERROR
   - If an invalid value is specified, PyTerraBackTYL will default to INFO.
 - `HELPER_HOSTNAME_QUERY_MAP:`
   - Generally, this should not need to be changed.
@@ -159,11 +158,6 @@ PYSHELVE_DB_FILE_NAME: '_terraform_state'
     - `GIT_STATE_CHANGE_LOG_FORMAT: '{Created} - {Operation}: {Who} {ID}'`
       - The details to record in the log file commited alongside terraform.tfstate
       - See the list of values for the commit message for valid values here.
-  - Start and test the PyTerraBackTYL service
-    - `su tfbackendsvc`
-    - `cd /opt/pyterrabacktyl/PyTerraBackTyl`
-    - `nohup python3 pyterrabacktyl.py 2>&1 > pyterrabacktyl.log &`
-    - `curl http://localhost:2442/state`
 
 ###### Full example configuration for GitBackend
 ```yaml
@@ -235,9 +229,26 @@ Implement the following functions in your class:
 - `def backend_status(self):` _OPTIONAL_
   - **RETURNS**: A JSON compatible object containing health and status information about the backend. This is a good place to report where data is being stored and lock state for the environment.
 
+#### Start and test the PyTerraBackTYL service
+- `su tfbackendsvc`
+- `cd /opt/pyterrabacktyl/PyTerraBackTyl`
+- `./start.sh` Modify this script to change the location of log file if needed.
+- `curl -s http://localhost:2442/state` Check the current state of the backend. When first started, output will appear similar to the below.
+
+```json
+{
+  "backend_module": "pyshelve_backend.PyShelveBackend",
+  "post_processor_modules": [
+    "zenoss_post_processor.ZenossPostProcessor",
+    "slack_notify_post_processor.SlackNotifyPostProcessor"
+  ],
+  "environments": []
+}
+```
+
 #### Configure your Terraform project to use the PyTerraBackTYL Service:
 In your project, configure the HTTP backend service:
-```
+```hcl
 terraform {
   backend "http" {
     address = "http://localhost:2442/?env=DEVTEST"
