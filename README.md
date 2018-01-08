@@ -102,6 +102,20 @@ Modify `config.yaml` and set the following items to the desired values.
   - The file name to use for Python 'shelve' oblects.
   - _Note:_ The name of the environment will be prepended to this file name (e.g. if 'QA' is set as the environment name, the file 'QA_terraform_state' will be created).
 
+###### Full example configuration for the PyShelveBackend module:
+```yaml
+##
+##  pyshelve_backend.PyShelveBackend configuration
+##
+
+# The path to where the python shelf objects should be saved (no trailing slash).
+PYSHELVE_DATA_PATH: '/opt/pyterrabacktyl/data'
+
+# The filename for the tfstate shelf objects -- the environment name will be prepended
+# e.g. for environment TEST, file name will be TEST_terraform_state
+PYSHELVE_DB_FILE_NAME: '_terraform_state'
+```
+
 ##### Option 2: Setup and Configure the GitBackend module:
 - SSH to the host running the PyTerraBackTYL service and become the user running the service (e.g. `su tfbackendsvc`)
 - Install GitPython: `pip3 install GitPython --user`
@@ -198,10 +212,10 @@ class MyPersistentBackend(TYLPersistent):...
 ```
 
 Implement the following functions in your class:
-- `__init__(self, environment, constants, *args, **kwargs):`
+- `__init__(self, environment, constants, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant. Use this value to keep environment states isolated from each other. For example, if you are saving your Terraform states into plain text files, you'd likely want your file name to be something like `<environment>_terraform.tfstate`
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_BACKEND_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_BACKEND_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
-  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+  - `**kwargs` It is recommended to add this to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
 - `def set_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
@@ -218,6 +232,8 @@ Implement the following functions in your class:
   - No return value. Return `None` if needed.
 - `def get_tfstate(self):`
   - **RETURNS**: The string (`str`) or JSON compatible object of the Terraform state (the value received in `store_tfstate()`).
+- `def backend_status(self):` _OPTIONAL_
+  - **RETURNS**: A JSON compatible object containing health and status information about the backend. This is a good place to report where data is being stored and lock state for the environment.
 
 #### Configure your Terraform project to use the PyTerraBackTYL Service:
 In your project, configure the HTTP backend service:
@@ -240,7 +256,7 @@ Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is 
 ---
 
 ### *Optional:* Create a non-persistent, 'post-processor' backend:
-Similarly to how custom backend modules are managed, you can also create a `TYLNonpersistent` backend. These are optional backends that don't store any locking or state data, but rather allow you the opportunity to parse the Terraform lock and state files to perform other actions. Examples of tasks you may want to perform with a non-persistent backed include adding new hosts to monitoring, generating a chat notification that a user has performed an action, generating a report email containing a list of new hostnames, etc. These non-persistent backends should be kept in the same directory as the persistent backends (e.g. the `backends` directory).
+Similarly to how custom backend modules are managed, you can also create a `TYLNonpersistent` backend. These are optional backends that don't store any locking or state data, but rather allow you the opportunity to parse the Terraform lock and state files to perform other actions. Examples of tasks you may want to perform with a non-persistent backed include adding new hosts to monitoring, generating a chat notification that a user has performed an action, generating a report email containing a list of new hostnames, etc. These non-persistent backends should be kept in the same directory as the persistent backends (e.g. the `backends` directory). You can reference the [SlackNotifyPostProcessor](https://github.com/dev-dull/PyTerraBackTyl/blob/master/backends/slack_notify_post_processor.py) as an example.
 
 ---
 
@@ -262,10 +278,10 @@ class MyNonpersistentBackend(TYLNonpersistent):...
 ```
 
 Implement the following functions in your class:
-- `__init__(self, environment, constants, *args, **kwargs):`
+- `__init__(self, environment, constants, **kwargs):`
   - `environment` every environment will get a separate instance of your class and as a result, this value should be treated as a constant.
   - `constants` a python class containing constant values. These values are partly populated by `config.yaml` as key:value pairs. For example, if you set `MY_POST_PROCESSOR_FOO: 'Hello, World!'` in `config.yaml`, you can access the string value with `constants.MY_POST_PROCESSOR_FOO`. This allows you to configure your backend module without the need of a separate configuration file.
-  - `*args` and `**kwargs` It is recommended to add these to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
+  - `**kwargs` It is recommended to add this to help ensure forward compatibility of your module with future versions of PyTerraBackTYL.
 - `def on_locked(self, state_obj, **kwargs):`
   - `state_obj` Unpacked JSON (`dict`) with the specifics on who is putting a lock on the environment.
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
@@ -278,3 +294,9 @@ Implement the following functions in your class:
   - `tfstate_obj` Unpacked JSON (`dict`) which specifies the current terraform state (`terraform.tfstate`)
   - `**kwargs` includes `raw` which contains the original JSON string (`str`) value.
   - No return value. Return `None` if needed.
+- `def post_processor_status(self):` _OPTIONAL_
+  - **RETURNS**: A JSON compatible object containing health and status information about the backend. This is a good place to report where data is being stored.
+  
+### Troubleshooting:
+- As always, check the log. If you haven't modified the default start script, a new subdirectory called `logs` will be created in the same location as the script.
+- Check what information is found in the `/state` endpoint. You can monitor state changes with the command `watch -d "curl -s http://localhost:2442/state"`.
