@@ -2,7 +2,7 @@
 ![PyTerraBackTYL logo](http://www.devdull.lol/pyterrabacktyl/pyterrabacktyl_logo_v2.png)
 
 ## About:
-PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing your Terraform state and locking in whatever way you see fit. PyTerraBackTYL uses Python shelve objects by default, but a plugin for using Git to manage Terraform locking and state is provided. Additionally, a non-persistant plugin is included that pushes notifications into Slack.
+PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing your Terraform state and locking in whatever way you see fit. By default, PyTerraBackTYL comes with plugins to manage locking and state using Git, or using simple 'shelve' objects to persist to disk. Additionally, non-persistent plugins can be used to automate tasks when a user has issued a `terraform` command, such as automatically adding the new hosts into monitoring, or pushing notifications to Slack like in the provided example.
 
 ## Setup:
 ### Requirements:
