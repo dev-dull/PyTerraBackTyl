@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 
 
 class GitBackend(TYLPersistent):
@@ -110,7 +110,6 @@ class GitBackend(TYLPersistent):
         if os.path.exists(self.logfile):
             foutin = open(self.logfile, 'r+')
             log_lines = foutin.read().splitlines()[scrollback:]
-            foutin.seek(0)  # TODO: this looks redundant to the below seek(0)
         else:
             foutin = open(self.logfile, 'w')
             log_lines = []
@@ -122,6 +121,7 @@ class GitBackend(TYLPersistent):
         else:
             log_lines.append('An out-of-process change was made using terraform (e.g. `terraform force-unlock`')
         foutin.write('\n'.join(log_lines) + '\n')
+        foutin.truncate()
         foutin.close()
         del foutin
 
