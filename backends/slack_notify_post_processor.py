@@ -55,3 +55,13 @@ class SlackNotifyPostProcessor(TYLNonpersistent):
             new_hosts = ', '.join(TYLHelpers.get_hostnames_from_tfstate(tfstate_obj))
             if new_hosts:
                 self._post_to_slack(new_hosts, 'Created Hosts')
+
+    def post_processor_status(self):
+        """
+        :return: Health and status object in a JSON compatible format.
+        """
+        return {
+            'locked': bool(self.lock_info),
+            'slack_user_image_uri': self.C.SLACK_NOTIFY_USER_IMAGE_URI,
+            'slack_username': self.C.SLACK_NOTIFY_USERNAME,
+        }

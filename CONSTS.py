@@ -59,6 +59,7 @@ class C(object):
     TYL_KEYWORD_LOGGED_ERROR_CT = None
     TYL_KEYWORD_RECENT_LOGGED_ERROR = None
     TYL_KEYWORD_BACKEND_STATUS = None
+    TYL_KEYWORD_POST_PROCESSOR_STATUS = None
 
 
 # Override the constant values, set user specified constants.
@@ -107,3 +108,4 @@ C.TYL_KEYWORD_HTTP_STATE = 'http_state'
 C.TYL_KEYWORD_LOGGED_ERROR_CT = 'num_errors_logged'
 C.TYL_KEYWORD_RECENT_LOGGED_ERROR = 'recent_logged_error'
 C.TYL_KEYWORD_BACKEND_STATUS = 'backend_status'
+C.TYL_KEYWORD_POST_PROCESSOR_STATUS = 'post_processor_status'

@@ -142,10 +142,18 @@ def service_state():
         }
 
         for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
+            try:
+                pp_state = pp.post_processor_status()
+            except Exception as e:
+                logging.error(e)
+                pp._logged_errors_ += 1
+                pp._recent_error_ = str(e)
+
             env_pp_state = {
                 C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
                 C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
                 C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
+                C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
             }
 
             env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
