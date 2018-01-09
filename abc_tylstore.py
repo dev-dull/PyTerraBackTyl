@@ -110,6 +110,6 @@ class TYLNonpersistent(object):
 
     def post_processor_status(self):
         """
-        :return: Health and status information in a JSON compatible format.
+        :return: Health and status object in a JSON compatible format.
         """
         return None

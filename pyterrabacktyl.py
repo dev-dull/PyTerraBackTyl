@@ -72,12 +72,19 @@ def _run_post_processors():
         obj_funcs = [(pp, pp.process_tfstate) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
 
     for pp, func in obj_funcs:
-        try:
-            func(*args, **kwargs)
-        except Exception as e:
-            pp._logged_errors_ += 1
-            pp._recent_error_ = str(e)
-            logging.error('%s: %s' % (pp.__class__.__name__, e))
+        _run_post_processor_func(pp, func, func_args=args, func_kwargs=kwargs)
+
+
+def _run_post_processor_func(pp, func, func_args=(), func_kwargs={}):
+    val = None
+    try:
+        val = func(*func_args, **func_kwargs)
+    except Exception as e:
+        pp._logged_errors_ += 1
+        pp._recent_error_ = str(e)
+        logging.error('%s: %s' % (pp.__class__.__name__, e))
+
+    return val
 
 
 @backend_service.route('/lock', methods=[C.HTTP_METHOD_LOCK, C.HTTP_METHOD_GET])
@@ -142,10 +149,13 @@ def service_state():
         }
 
         for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
+            pp_state = _run_post_processor_func(pp, pp.post_processor_status)
+
             env_pp_state = {
                 C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
                 C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
                 C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
+                C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
             }
 
             env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
