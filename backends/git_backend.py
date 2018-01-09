@@ -110,11 +110,11 @@ class GitBackend(TYLPersistent):
         if os.path.exists(self.logfile):
             foutin = open(self.logfile, 'r+')
             log_lines = foutin.read().splitlines()[scrollback:]
+            foutin.seek(0)
         else:
             foutin = open(self.logfile, 'w')
             log_lines = []
 
-        foutin.seek(0)
         # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
         if json_obj:
             log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
