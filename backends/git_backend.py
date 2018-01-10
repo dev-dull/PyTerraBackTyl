@@ -93,7 +93,7 @@ class GitBackend(TYLPersistent):
             if state_obj:
                 message = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj))
             else:
-                message = 'An out-of-process change was made using terraform (e.g. `terraform force-unlock`'
+                message = 'An out-of-process change was made using terraform (e.g. `terraform force-unlock`)'
             self.repository.commit(m=message)
             self.repository.push(self.push_origin, self.ENV)
             return True
