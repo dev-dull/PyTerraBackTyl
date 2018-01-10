@@ -60,7 +60,7 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
 def _run_post_processors():
     # Process the nonpersistant plugins (enabled, but not handling locking).
     raw_data = request.data.decode()
-    args = (json.loads(raw_data),)
+    args = (json.loads(raw_data),)  # TODO: When `terraform force-unlock` is called, there's no json to unpack.
     kwargs = {'raw': raw_data}
 
     # Collect all the post-processor functions so we don't have to process this 'if' for every loop iteration.
