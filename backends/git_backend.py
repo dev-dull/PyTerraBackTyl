@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 
 class GitBackend(TYLPersistent):
@@ -73,10 +73,10 @@ class GitBackend(TYLPersistent):
         fout.close()
         del fout
 
-        self._update_log(state_obj)
+        self._update_log(state_obj, append=' %s'%self.C.HTTP_METHOD_LOCK)
         self.repository.add([self.lockfile, self.logfile])
         self.lock_commit_msg = self.C.GIT_COMMIT_MESSAGE_FORMAT.format(**defaultdict(str, state_obj))
-        self.repository.commit(m=self.lock_commit_msg or 'FORCED CHANGE')
+        self.repository.commit(m=self.lock_commit_msg or '---- FORCED CHANGE ----')
         self.repository.push(self.push_origin, self.ENV)
 
         return True
@@ -86,7 +86,7 @@ class GitBackend(TYLPersistent):
         # If they fix that, then we should compare lock IDs before unlocking.
         self.repository.pull()
         if os.path.exists(self.lockfile):
-            self._update_log(state_obj)
+            self._update_log(state_obj, append=' %s'%self.C.HTTP_METHOD_UNLOCK)
             self.repository.rm(self.lockfile)
             self.repository.add(self.logfile)
             # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
@@ -100,7 +100,7 @@ class GitBackend(TYLPersistent):
         logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
         return False
 
-    def _update_log(self, json_obj):
+    def _update_log(self, json_obj, append=''):
         try:
             scrollback = -1 * abs(int(self.C.GIT_STATE_CHANGE_LOG_SCROLLBACK))
         except ValueError:
@@ -117,7 +117,7 @@ class GitBackend(TYLPersistent):
 
         # Using defaultdict here will give us an empty string for any invalid format values configured by the user.
         if json_obj:
-            log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)))
+            log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)) + append)
         else:
             log_lines.append('An out-of-process change was made using terraform (e.g. `terraform force-unlock`')
         foutin.write('\n'.join(log_lines) + '\n')
