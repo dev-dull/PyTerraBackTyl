@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.3.6'
+__version__ = '1.3.7'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -60,10 +60,13 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
 def _run_post_processors():
     # Process the nonpersistant plugins (enabled, but not handling locking).
     raw_data = request.data.decode()
-    args = (json.loads(raw_data),)
+    # 'or' condition in json.loads() handles the situation of `terraform force-unlock <id>`
+    # might need a try/except for other undiscovered edge cases.
+    args = (json.loads(raw_data.strip() or '{}'),)
     kwargs = {'raw': raw_data}
 
     # Collect all the post-processor functions so we don't have to process this 'if' for every loop iteration.
+    obj_funcs = []
     if request.method == C.HTTP_METHOD_LOCK:
         obj_funcs = [(pp, pp.on_locked) for pp in _backends[_env][C.TYL_KEYWORD_POST_PROCESSORS]]
     elif request.method == C.HTTP_METHOD_UNLOCK:
@@ -82,7 +85,8 @@ def _run_post_processor_func(pp, func, func_args=(), func_kwargs={}):
     except Exception as e:
         pp._logged_errors_ += 1
         pp._recent_error_ = str(e)
-        logging.error('%s: %s' % (pp.__class__.__name__, e))
+        logging.error('%s' % pp.__class__.__name__)
+        logging.error(e)
 
     return val
 
