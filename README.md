@@ -313,4 +313,4 @@ Implement the following functions in your class:
 - Check what information is found in the `/state` endpoint. You can monitor state changes with the command `watch -d "curl -s http://localhost:2442/state"`.
 
 ## Thanks and Acknowledgements:
-PyTerraBackTYL art and logos is based on the creative works of Matthew Green. Show your support and visit his website [TetraVariations](https://tetravariations.wordpress.com/), or purchase something rad from his [Etsy store](https://www.etsy.com/shop/TetraVariations?ref=l2-shopheader-name)! 
+PyTerraBackTYL art and logos are based on the creative works of Matthew Green. Show your support and visit his website [TetraVariations](https://tetravariations.wordpress.com/), or purchase something rad from his [Etsy store](https://www.etsy.com/shop/TetraVariations?ref=l2-shopheader-name)! 
