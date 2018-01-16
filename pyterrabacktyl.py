@@ -130,6 +130,7 @@ def tf_backend():
 
         return 'alrighty!', C.HTTP_OK
     else:
+        # TODO: It looks like terraform will check for a 'Content-MD5' header and validate returned content.
         t = _backends[_env][C.TYL_KEYWORD_BACKEND].get_tfstate()
         logging.info('Fetched tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
         return _json_string(t), C.HTTP_OK
@@ -169,6 +170,12 @@ def service_state():
     return json.dumps(state, indent=2), C.HTTP_OK
 
 
+@backend_service.route('/ui')
+def service_state_ui():
+    # TODO: A web UI that'll show /state in presentable way.
+    return 'Not yet', 501
+
+
 # TODO: Put some auth around forcing this to stop.
 @backend_service.route('/getpid')
 def shutdown():
@@ -185,8 +192,14 @@ def shutdown():
 
 
 @backend_service.errorhandler(404)
-def four_oh_four(thing):
+def four_oh_four(_):
     return 'oh, snap. It done gone broked.', 404
+
+
+@backend_service.errorhandler(500)
+def four_oh_four(_):
+    import traceback
+    return traceback.format_exc(), 500
 
 
 def set_env_from_url():
@@ -236,4 +249,5 @@ if __name__ == '__main__':
     logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)
+    ssl_context = (C.SSL_PUBLIC_KEY, C.SSL_PRIVATE_KEY) if C.USE_SSL else None
+    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context)

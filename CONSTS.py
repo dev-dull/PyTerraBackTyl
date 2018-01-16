@@ -1,7 +1,7 @@
 
 from CONST_abated import load_from_yaml
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 
 # C is for CONST and that's good enough for me.
@@ -12,19 +12,21 @@ class C(object):
     #
     ####################################################################################################################
 
-    # When false, use GitLab/Hub authentication???
     USE_AUTHENTICATION_SERVICE = True
 
     BACKEND_SERVICE_IP = '127.0.0.1'
     BACKEND_SERVICE_PORT = 2442
     AUTHENTICATION_SERVICE_PORT = 2443
-    SSL_CERTIFICATE_PATH = '/SOME/PATH/TBD.key'  # TODO: http://flask.pocoo.org/snippets/111/
 
     BACKEND_PLUGINS_PATH = 'backends'
     BACKEND_CLASS = 'git_backend.GitBackend'
     POST_PROCESS_CLASSES = []
 
     LOG_LEVEL = 'INFO'
+
+    USE_SSL = False
+    SSL_PUBLIC_KEY = 'ssl/public.key'
+    SSL_PRIVATE_KEY = 'ssl/private.key'
 
     # Declaring that these things exist so the IDE can find them without complaining. Values are populated below.
     AUTHENTICATION_SERVICE_IP = None
