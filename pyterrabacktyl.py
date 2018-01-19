@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.3.7'
+__version__ = '1.3.8'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -145,11 +145,18 @@ def service_state():
             }
 
     for env, backend in _backends.items():
+
+        # There is a narrow window where `backend` exists but `backend['backend']` does not.
+        # This handles that edge case without spewing errors at the user.
+        loading = None
+        if C.TYL_KEYWORD_BACKEND not in backend:
+            loading = 'loading data...'
+
         env_state = {
             C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
-            C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,  # TODO Narrow window where backend['backend'] can be accessed before it is populated.
-            C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
-            C.TYL_KEYWORD_BACKEND_STATUS: backend[C.TYL_KEYWORD_BACKEND].backend_status(),
+            C.TYL_KEYWORD_LOCK_STATE: loading or backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
+            C.TYL_KEYWORD_HTTP_STATE: loading or C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
+            C.TYL_KEYWORD_BACKEND_STATUS: loading or backend[C.TYL_KEYWORD_BACKEND].backend_status(),
             C.TYL_KEYWORD_POST_PROCESSORS: []
         }
 
