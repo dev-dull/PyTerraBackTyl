@@ -147,7 +147,7 @@ def service_state():
     for env, backend in _backends.items():
         env_state = {
             C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
-            C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
+            C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,  # TODO Narrow window where backend['backend'] can be accessed before it is populated.
             C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
             C.TYL_KEYWORD_BACKEND_STATUS: backend[C.TYL_KEYWORD_BACKEND].backend_status(),
             C.TYL_KEYWORD_POST_PROCESSORS: []
@@ -197,7 +197,7 @@ def four_oh_four(_):
 
 
 @backend_service.errorhandler(500)
-def four_oh_four(_):
+def five_hundred(_):
     import traceback
     return traceback.format_exc(), 500
 
@@ -250,4 +250,4 @@ if __name__ == '__main__':
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
     ssl_context = (C.SSL_PUBLIC_KEY, C.SSL_PRIVATE_KEY) if C.USE_SSL else None
-    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context)
+    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context, threaded=True)

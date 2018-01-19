@@ -57,6 +57,7 @@ class GitBackend(TYLPersistent):
         # Delete the LOCAL copy of the 'master' branch
         # Hopefully this'll suppress 'X commits of head of master' warnings.
         self.repository.branch(d=self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1])
+        # self.repository.config("--unset remote.origin.fetch")
 
     def set_locked(self, state_obj, **kwargs):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
@@ -170,6 +171,6 @@ class GitBackend(TYLPersistent):
         return {
             'repository_path': self.working_dir,
             'locked': os.path.exists(self.lockfile),
-            'tfstate_exists': bool(self.get_tfstate()),
-            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.get_tfstate())
+            #'tfstate_exists': bool(self.get_tfstate()),  # TODO: Causes a git pull when there might be uncommited changes.
+            #'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.get_tfstate())
         }
