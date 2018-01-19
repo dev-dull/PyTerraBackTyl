@@ -78,6 +78,7 @@ class GitBackend(TYLPersistent):
         logging.info('Locking ENV %s: file is %s' % (self.ENV, self.lockfile))
         fout = open(self.lockfile, 'w')
         fout.write(json.dumps(state_obj, indent=2))
+        fout.truncate()
         fout.close()
         del fout
 
@@ -162,6 +163,7 @@ class GitBackend(TYLPersistent):
             commit_files.append(backup_file)
         fout = open(self.tfstate_file_name, 'w')
         fout.write(kwargs['raw'])
+        fout.truncate()
         fout.close()
 
         self.repository.add(commit_files)
