@@ -64,6 +64,15 @@ Modify `config.yaml` and set the following items to the desired values.
 - `LOG_LEVEL: 'INFO'`
   - The amount of information to log. Valid values are: INFO, DEBUG, WARNING, ERROR
   - If an invalid value is specified, PyTerraBackTYL will default to INFO.
+- `USE_SSL: false`
+  - Disabled by default, this specifies if the service should use SSL (HTTPS) or not (HTTP).
+  - A Bash script can be found in the `ssl` subdirectory which will generate these keys.
+- `SSL_PUBLIC_KEY: 'ssl/public.key'`
+  - The path and filename where the SSL public key can be found.
+  - The value shown here means the `ssl/` subdirectory where PyTerraBackTYL is installed.
+- `SSL_PRIVATE_KEY: 'ssl/private.key'`
+  - The path and filename where the SSL private key can be found.
+  - The value shown here means the `ssl/` subdirectory where PyTerraBackTYL is installed.
 - `HELPER_HOSTNAME_QUERY_MAP:`
   - Generally, this should not need to be changed.
   - Contains key:value pairs where the key is the name of a Terraform provider (an exact match for what is found in a Terraform state file) and the value is a JSONPath that will return the hostnames found in a Terraform state file for that provider type.
@@ -81,6 +90,11 @@ POST_PROCESS_CLASSES:
   - 'slack_notify_post_processor.SlackNotifyPostProcessor'
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
+
+# openssl req -x509 -nodes -days 3650 -newkey rsa:4096 -keyout private.key -out public.key -passout "pass:"
+USE_SSL: false  # Disabled by default -- generate SSL key pair then set this to 'true'
+SSL_PUBLIC_KEY: 'ssl/public.key'  # The path and filename of the public SSL key -- 'ssl/' is a subdirectory where PyTerraBackTYL is installed.
+SSL_PRIVATE_KEY: 'ssl/private.key'  # The path and file name of the private SSL key.
 
 # Key:Value pairs where the key matches a Terraform provider, and key is a jsonPath to fetch hostnames from the terraform state
 HELPER_HOSTNAME_QUERY_MAP:
