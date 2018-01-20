@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.3.7'
+__version__ = '1.3.10'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -130,6 +130,7 @@ def tf_backend():
 
         return 'alrighty!', C.HTTP_OK
     else:
+        # TODO: It looks like terraform will check for a 'Content-MD5' header and validate returned content.
         t = _backends[_env][C.TYL_KEYWORD_BACKEND].get_tfstate()
         logging.info('Fetched tfstate for ENV %s from IP %s.' % (_env, request.remote_addr))
         return _json_string(t), C.HTTP_OK
@@ -144,29 +145,43 @@ def service_state():
             }
 
     for env, backend in _backends.items():
+
+        # There is a narrow window where `backend` exists but `backend['backend']` does not.
+        # This handles that edge case without spewing errors at the user.
+        loading = None
+        if C.TYL_KEYWORD_BACKEND not in backend:
+            loading = 'loading data...'
+
         env_state = {
             C.TYL_KEYWORD_ENVIRONMENT_NAME: env,
-            C.TYL_KEYWORD_LOCK_STATE: backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
-            C.TYL_KEYWORD_HTTP_STATE: C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
-            C.TYL_KEYWORD_BACKEND_STATUS: backend[C.TYL_KEYWORD_BACKEND].backend_status(),
+            C.TYL_KEYWORD_LOCK_STATE: loading or backend[C.TYL_KEYWORD_BACKEND]._lock_state_,
+            C.TYL_KEYWORD_HTTP_STATE: loading or C.LOCK_STATES[backend[C.TYL_KEYWORD_BACKEND]._lock_state_],
+            C.TYL_KEYWORD_BACKEND_STATUS: loading or backend[C.TYL_KEYWORD_BACKEND].backend_status(),
             C.TYL_KEYWORD_POST_PROCESSORS: []
         }
 
-        for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
-            pp_state = _run_post_processor_func(pp, pp.post_processor_status)
+        if C.TYL_KEYWORD_POST_PROCESSORS in backend:
+            for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
+                pp_state = _run_post_processor_func(pp, pp.post_processor_status)
 
-            env_pp_state = {
-                C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
-                C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
-                C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
-                C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
-            }
+                env_pp_state = {
+                    C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
+                    C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
+                    C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
+                    C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
+                }
 
-            env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
+                env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
 
         state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
 
     return json.dumps(state, indent=2), C.HTTP_OK
+
+
+@backend_service.route('/ui')
+def service_state_ui():
+    # TODO: A web UI that'll show /state in presentable way.
+    return 'Not yet', 501
 
 
 # TODO: Put some auth around forcing this to stop.
@@ -185,8 +200,14 @@ def shutdown():
 
 
 @backend_service.errorhandler(404)
-def four_oh_four(thing):
+def four_oh_four(_):
     return 'oh, snap. It done gone broked.', 404
+
+
+@backend_service.errorhandler(500)
+def five_hundred(_):
+    import traceback
+    return traceback.format_exc(), 500
 
 
 def set_env_from_url():
@@ -236,4 +257,5 @@ if __name__ == '__main__':
     logger.setLevel(getattr(logging, C.LOG_LEVEL.upper(), 'INFO'))
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT)
+    ssl_context = (C.SSL_PUBLIC_KEY, C.SSL_PRIVATE_KEY) if C.USE_SSL else None
+    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context)

@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.2.3'
+__version__ = '1.3.5'
 
 
 class GitBackend(TYLPersistent):
@@ -54,15 +54,23 @@ class GitBackend(TYLPersistent):
             self.store_tfstate('', raw='')
         self.repository.pull()
 
-        # Delete the LOCAL copy of the 'master' branch
-        # Hopefully this'll suppress 'X commits of head of master' warnings.
-        self.repository.branch(d=self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1])
+        origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
+        branch = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[-1]
+        # Some versions of git will warn 'X commits of head of master' with an exit code of 1.
+        # This causes GitPython to puke -- delete the master branch and unset remote.origin.fetch *should* suppress that
+        try:
+            # Delete the LOCAL copy of the 'master' branch
+            self.repository.branch(d=branch)
+            self.repository.config('--unset', 'remote.%s.fetch' % origin)
+        except git.exc.GitCommandError as e:
+            logging.warning('Could not properly suppress "N commits ahead of BRANCH" warnings which may result in a 500 error for the user.')
 
     def set_locked(self, state_obj, **kwargs):
-        # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
-
         self.repository.pull()
+        return self._set_locked(state_obj, **kwargs)
 
+    def _set_locked(self, state_obj, **kwargs):
+        # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
         if os.path.exists(self.lockfile):
             logging.warning('Failed to obtain lock for ENV %s, already locked: %s' % (self.ENV, self.lockfile))
             return False
@@ -70,6 +78,7 @@ class GitBackend(TYLPersistent):
         logging.info('Locking ENV %s: file is %s' % (self.ENV, self.lockfile))
         fout = open(self.lockfile, 'w')
         fout.write(json.dumps(state_obj, indent=2))
+        fout.truncate()
         fout.close()
         del fout
 
@@ -82,9 +91,12 @@ class GitBackend(TYLPersistent):
         return True
 
     def set_unlocked(self, state_obj, **kwargs):
+        self.repository.pull()
+        return self._set_unlocked(state_obj, **kwargs)
+
+    def _set_unlocked(self, state_obj, **kwargs):
         # Terraform doesn't currently send the lock ID when a force-unlock is done.
         # If they fix that, then we should compare lock IDs before unlocking.
-        self.repository.pull()
         if os.path.exists(self.lockfile):
             self._update_log(state_obj, append=' %s'%self.C.HTTP_METHOD_UNLOCK)
             self.repository.rm(self.lockfile)
@@ -119,7 +131,7 @@ class GitBackend(TYLPersistent):
         if json_obj:
             log_lines.append(self.C.GIT_STATE_CHANGE_LOG_FORMAT.format(**defaultdict(str, json_obj)) + append)
         else:
-            log_lines.append('An out-of-process change was made using terraform (e.g. `terraform force-unlock`')
+            log_lines.append('An out-of-process change was made using terraform (e.g. `terraform force-unlock`)')
         foutin.write('\n'.join(log_lines) + '\n')
         foutin.truncate()
         foutin.close()
@@ -127,6 +139,9 @@ class GitBackend(TYLPersistent):
 
     def get_lock_state(self):
         self.repository.pull()
+        return self._get_lock_state()
+
+    def _get_lock_state(self):
         if os.path.exists(self.lockfile):
             fin = open(self.lockfile, 'r')
             state = fin.read()
@@ -137,7 +152,9 @@ class GitBackend(TYLPersistent):
 
     def store_tfstate(self, state_obj, **kwargs):
         self.repository.pull()
+        return self._store_tfstate(state_obj, **kwargs)
 
+    def _store_tfstate(self, state_obj, **kwargs):
         backup_file = self.tfstate_file_name+'.backup'
         commit_files = [self.tfstate_file_name]
         if os.path.exists(self.tfstate_file_name):
@@ -146,6 +163,7 @@ class GitBackend(TYLPersistent):
             commit_files.append(backup_file)
         fout = open(self.tfstate_file_name, 'w')
         fout.write(kwargs['raw'])
+        fout.truncate()
         fout.close()
 
         self.repository.add(commit_files)
@@ -156,20 +174,19 @@ class GitBackend(TYLPersistent):
 
     def get_tfstate(self):
         self.repository.pull()
+        return self._get_tfstate()
 
-        try:
-            logging.debug('Reading state file %s' % self.tfstate_file_name)
-            fin = open(self.tfstate_file_name, 'r')
-            tfstate = fin.read()
-            fin.close()
-            return tfstate
-        except Exception as e:
-            raise e
+    def _get_tfstate(self):
+        logging.debug('Reading state file %s' % self.tfstate_file_name)
+        fin = open(self.tfstate_file_name, 'r')
+        tfstate = fin.read()
+        fin.close()
+        return tfstate
 
     def backend_status(self):
         return {
             'repository_path': self.working_dir,
             'locked': os.path.exists(self.lockfile),
-            'tfstate_exists': bool(self.get_tfstate()),
-            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.get_tfstate())
+            'tfstate_exists': bool(self._get_tfstate()),
+            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self._get_tfstate())
         }
