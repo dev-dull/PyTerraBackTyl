@@ -2,12 +2,17 @@
 BACKEND_SERVICE_IP: '0.0.0.0'
 BACKEND_SERVICE_PORT: 2442
 
-BACKEND_PLUGINS_PATH: 'backends'
-BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
-POST_PROCESS_CLASSES:
-  - 'slack_notify_post_processor.SlackNotifyPostProcessor'
+BACKEND_PLUGINS_PATH: 'backends'  # Where to find persistent and non-persistent plugins
+BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'  # The persistent plugin that controls locking and state.
+POST_PROCESS_CLASSES:  [] # A list of non-persistant plugins that let you perform extra tasks based on locking and state.
+#  - 'slack_notify_post_processor.SlackNotifyPostProcessor'  # the included/optional non-persistent backend which can post notifications into the Slack chat applicaiton.
 
 LOG_LEVEL: 'DEBUG' # INFO, DEBUG, WARNING, ERROR
+
+# openssl req -x509 -nodes -days 3650 -newkey rsa:4096 -keyout private.key -out public.key -passout "pass:"
+USE_SSL: false  # Disabled by default -- generate SSL key pair then set this to 'true'
+SSL_PUBLIC_KEY: 'ssl/public.key'  # The path and filename of the public SSL key -- 'ssl/' is a subdirectory where PyTerraBackTYL is installed.
+SSL_PRIVATE_KEY: 'ssl/private.key'  # The path and file name of the private SSL key.
 
 # Key:Value pairs where the key matches a Terraform provider, and key is a jsonPath to fetch hostnames from the terraform state
 HELPER_HOSTNAME_QUERY_MAP:
