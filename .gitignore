@@ -4,3 +4,5 @@ __pycache__
 *.pyc
 creds.txt
 backends/zenoss_post_processor.py
+ssl/private.key
+ssl/public.key
