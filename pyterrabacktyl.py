@@ -9,7 +9,7 @@ from collections import Iterable
 from flask import Flask, request
 from importlib import import_module
 
-__version__ = '1.3.8'
+__version__ = '1.3.10'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -160,17 +160,18 @@ def service_state():
             C.TYL_KEYWORD_POST_PROCESSORS: []
         }
 
-        for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
-            pp_state = _run_post_processor_func(pp, pp.post_processor_status)
+        if C.TYL_KEYWORD_POST_PROCESSORS in backend:
+            for pp in backend[C.TYL_KEYWORD_POST_PROCESSORS]:
+                pp_state = _run_post_processor_func(pp, pp.post_processor_status)
 
-            env_pp_state = {
-                C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
-                C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
-                C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
-                C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
-            }
+                env_pp_state = {
+                    C.TYL_KEYWORD_POST_PROCESSOR_MODULE: pp.__class__.__name__,
+                    C.TYL_KEYWORD_LOGGED_ERROR_CT: pp._logged_errors_,
+                    C.TYL_KEYWORD_RECENT_LOGGED_ERROR: pp._recent_error_,
+                    C.TYL_KEYWORD_POST_PROCESSOR_STATUS: pp_state,
+                }
 
-            env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
+                env_state[C.TYL_KEYWORD_POST_PROCESSORS].append(env_pp_state)
 
         state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
 
@@ -257,4 +258,4 @@ if __name__ == '__main__':
     logger.handlers[0].setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
     ssl_context = (C.SSL_PUBLIC_KEY, C.SSL_PRIVATE_KEY) if C.USE_SSL else None
-    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context, threaded=True)
+    backend_service.run(host=C.BACKEND_SERVICE_IP, port=C.BACKEND_SERVICE_PORT, ssl_context=ssl_context)
