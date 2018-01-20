@@ -268,11 +268,12 @@ terraform {
     address = "http://localhost:2442/?env=DEVTEST"
     lock_address = "http://localhost:2442/lock?env=DEVTEST"
     unlock_address = "http://localhost:2442/unlock?env=DEVTEST"
+    skip_cert_verification = "true"
   }
 }
 ```
 
-Change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is running.
+Remember to change 'localhost' to the hostname or IP of where the PyTerraBackTYL service is running, and to change `http` to `https` if you are using SSL.
 
 ---
 
