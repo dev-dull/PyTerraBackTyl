@@ -70,9 +70,11 @@ Modify `config.yaml` and set the following items to the desired values.
 - `SSL_PUBLIC_KEY: 'ssl/public.key'`
   - The path and filename where the SSL public key can be found.
   - The value shown here means the `ssl/` subdirectory where PyTerraBackTYL is installed.
+  - A shell script can be found in `ssl/` which will generate the keys required to use SSL.
 - `SSL_PRIVATE_KEY: 'ssl/private.key'`
   - The path and filename where the SSL private key can be found.
   - The value shown here means the `ssl/` subdirectory where PyTerraBackTYL is installed.
+  - A shell script can be found in `ssl/` which will generate the keys required to use SSL.
 - `HELPER_HOSTNAME_QUERY_MAP:`
   - Generally, this should not need to be changed.
   - Contains key:value pairs where the key is the name of a Terraform provider (an exact match for what is found in a Terraform state file) and the value is a JSONPath that will return the hostnames found in a Terraform state file for that provider type.
