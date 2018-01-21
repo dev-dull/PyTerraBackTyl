@@ -176,7 +176,6 @@ def service_state():
         state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
 
     return jsonify(state)
-    # return json.dumps(state, indent=2), C.HTTP_OK
 
 
 @backend_service.route('/ui')
