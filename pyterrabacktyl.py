@@ -6,10 +6,10 @@ import abc_tylstore
 
 from CONSTS import C
 from collections import Iterable
-from flask import Flask, request
 from importlib import import_module
+from flask import Flask, request, jsonify
 
-__version__ = '1.3.10'
+__version__ = '1.3.11'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -175,7 +175,7 @@ def service_state():
 
         state[C.TYL_KEYWORD_ENVIRONMENTS].append(env_state)
 
-    return json.dumps(state, indent=2), C.HTTP_OK
+    return jsonify(state)
 
 
 @backend_service.route('/ui')

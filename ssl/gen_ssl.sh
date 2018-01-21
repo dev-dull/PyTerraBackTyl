@@ -22,7 +22,7 @@ fi
 wssl=`which openssl`
 wissl=`whereis openssl | awk '{print $2}'`
 # use the non-printing system-bell character to separate results and grab a working answer
-ssl_app=`echo -e "\a$wssl\a$wissl\a" | grep -Eio "\a[^\a]+\a" | head -n 1 | tr -d "\a"`
+ssl_app=`echo -e "\a$wssl\a$wissl\a" | grep -Pio "\a[^\a]+\a" | head -n 1 | tr -d "\a"`
 
 if [ -x "$ssl_app" ]; then
   $ssl_app $opts
