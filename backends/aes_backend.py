@@ -1,36 +1,46 @@
 import os
 import logging
 
+from Crypto import Random
 from itertools import cycle
 from Crypto.Cipher import AES
 from abc_tylstore import TYLPersistent
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 
-# https://www.dlitz.net/software/pycrypto/api/current/Crypto.Cipher.AES-module.html
-def _lazy_encrypt(key, iv, data, pad_chr=' '):
-    key, iv = _key_iv(key, iv)
-    data += pad_chr * (16 - len(data) % 16)  # pad the end with spaces
-    return AES.new(key, AES.MODE_CBC, iv).encrypt(data)
+class _lazyAES(object):
+    def __init__(self, key):
+        c = cycle(key)
+        self.key = ''.join([next(c) for x in range(0, 32)])
 
+    def encrypt(self, raw):
+        raw += ' ' * (AES.block_size - len(raw) % AES.block_size)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return iv + cipher.encrypt(raw)
 
-def _lazy_decrypt(key, iv, data):
-    if data:
-        key, iv = _key_iv(key, iv)
-        return AES.new(key, AES.MODE_CBC, iv).decrypt(data).decode().strip()
-    return ''
+    def decrypt(self, enc):
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return cipher.decrypt(enc[AES.block_size:]).decode().strip()
 
+    def __setitem__(self, filename, value):
+        fout = open(filename, 'wb')
+        fout.write(self.encrypt(value))
+        fout.close()
 
-def _key_iv(key, iv):
-    # Make it so that the user doesn't have to know how many bytes long these values have to be.
-    c = cycle(key)
-    key = ''.join([next(c) for x in range(0, 32)])
+    def __getitem__(self, filename):
+        fin = open(filename, 'rb')
+        value = fin.read()
+        fin.close()
+        return self.decrypt(value)
 
-    c = cycle(iv)
-    iv = ''.join([next(c) for x in range(0, 16)])
+    def __delitem__(self, filename):
+        os.remove(filename)
 
-    return key, iv
+    def __contains__(self, filename):
+        return os.path.isfile(filename)
 
 
 class AESBackend(TYLPersistent):
@@ -38,13 +48,12 @@ class AESBackend(TYLPersistent):
         self.C = constants
         self.ENV = environment
 
-        self.lockfile = os.sep.join([self.C.AES_WORKING_PATH, self.ENV+'_LOCKED.bin'])
-        self.statefile = os.sep.join([self.C.AES_WORKING_PATH, self.ENV + '_tfstate.bin'])
+        self.tfstate_filename = os.sep.join([self.C.AES_DATA_PATH, self.ENV+self.C.AES_TFSTATE_FILENAME])
+        self.tflock_filename = os.sep.join([self.C.AES_DATA_PATH, self.ENV + self.C.AES_TFLOCK_FILENAME])
+        self.tfstate_aes = _lazyAES(self.C.AES_SECRET_KEY)
 
-        if not os.path.isfile(self.lockfile):
-            fout = open(self.statefile, 'wb')
-            fout.write(b'')
-            fout.close()
+        if self.tfstate_filename not in self.tfstate_aes:
+            self.tfstate_aes[self.tfstate_filename] = ''
 
     def set_locked(self, state_obj, **kwargs):
         """
@@ -52,14 +61,12 @@ class AESBackend(TYLPersistent):
         :param kwargs: Includes 'raw' which has the json text as a string (str)
         :return: True on successful lock, False if something prevented the lock from happening.
         """
-        if os.path.isfile(self.lockfile):
+        if self.tflock_filename in self.tfstate_aes:
             logging.warning('Failed to obtain lock for ENV %s, already locked' % self.ENV)
             return False
 
         logging.info('Locking ENV %s' % self.ENV)
-        fout = open(self.lockfile, 'wb')
-        fout.write(_lazy_encrypt(self.C.AES_SECRET_KEY, self.C.AES_INIT_VECTOR, kwargs['raw']))
-        fout.close()
+        self.tfstate_aes[self.tflock_filename] = kwargs['raw']
         return True
 
     def set_unlocked(self, state_obj, **kwargs):
@@ -72,8 +79,8 @@ class AESBackend(TYLPersistent):
         """
         # Terraform doesn't currently send the lock ID when a force-unlock is done.
         # If they fix that, then we should compare lock IDs before unlocking.
-        if os.path.isfile(self.lockfile):
-            os.remove(self.lockfile)
+        if self.tflock_filename in self.tfstate_aes:
+            del self.tfstate_aes[self.tflock_filename]
             return True
         logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
         return False
@@ -83,12 +90,8 @@ class AESBackend(TYLPersistent):
         :return: The request/JSON string provided by terraform of the current lock (the value received in set_locked()),
                  Return an empty string if there is no lock.
         """
-        if os.path.isfile(self.lockfile):
-            fin = open(self.lockfile, 'rb')
-            lock_data = fin.read()
-            fin.close()
-
-            return _lazy_decrypt(self.C.AES_SECRET_KEY, self.C.AES_INIT_VECTOR, lock_data)
+        if self.tflock_filename in self.tfstate_aes:
+            return self.tfstate_aes[self.tflock_filename]
         return ''
 
     def store_tfstate(self, tfstate_obj, **kwargs):
@@ -96,26 +99,24 @@ class AESBackend(TYLPersistent):
         :param tfstate_obj: JSON string of the current terraform.tfstate file.
         :param kwargs: Includes 'raw' which has the json text as a string (str)
         """
-        fout = open(self.statefile, 'wb')
-        fout.write(_lazy_encrypt(self.C.AES_SECRET_KEY, self.C.AES_INIT_VECTOR, kwargs['raw']))
-        fout.close()
+        self.tfstate_aes[self.tfstate_filename] = kwargs['raw']
         logging.debug('Saved state file for env %s' % self.ENV)
 
     def get_tfstate(self):
         """
         :return: Object or JSON formatted string of the current terraform.tfstate file (the value received in store_tfstate()).
         """
-        fin = open(self.statefile, 'rb')
-        tfstate_data = fin.read()
-        fin.close()
-        return _lazy_decrypt(self.C.AES_SECRET_KEY, self.C.AES_INIT_VECTOR, tfstate_data)
+        return self.tfstate_aes[self.tfstate_filename]
 
-    def backend_status(self):
-        """
-        :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
-        """
-        return {
-            'filename': self.statefile,
-            'tfstate_exists': os.path.isfile(self.statefile),
-            'locked': os.path.isfile(self.lockfile),
-        }
+    # def backend_status(self):
+    #     """
+    #     :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
+    #     """
+    #     return {}
+    #         'filename': self.tfstate_file_name,
+    #         'tfstate_obj_key': self.C.TFSTATE_KEYWORD,
+    #         'lock_state_obj_key': self.C.LOCK_STATE_KEYWORD,
+    #         'tfstate_exists': bool(self.tfstate_shelf[self.C.TFSTATE_KEYWORD]),
+    #         'locked': self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf,
+    #         'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.tfstate_shelf[self.C.TFSTATE_KEYWORD])
+    #     }
