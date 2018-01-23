@@ -1,12 +1,11 @@
 import os
 import logging
 
-from Crypto import Random
 from itertools import cycle
-from Crypto.Cipher import AES
+from Crypto import Random, Cipher
 from abc_tylstore import TYLPersistent
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 
 
 class _lazyAES(object):
@@ -15,15 +14,15 @@ class _lazyAES(object):
         self.key = ''.join([next(c) for x in range(0, 32)])
 
     def encrypt(self, raw):
-        raw += ' ' * (AES.block_size - len(raw) % AES.block_size)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        raw += ' ' * (Cipher.AES.block_size - len(raw) % Cipher.AES.block_size)
+        iv = Random.new().read(Cipher.AES.block_size)
+        cipher = Cipher.AES.new(self.key, Cipher.AES.MODE_CBC, iv)
         return iv + cipher.encrypt(raw)
 
     def decrypt(self, enc):
-        iv = enc[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return cipher.decrypt(enc[AES.block_size:]).decode().strip()
+        iv = enc[:Cipher.AES.block_size]
+        cipher = Cipher.AES.new(self.key, Cipher.AES.MODE_CBC, iv)
+        return cipher.decrypt(enc[Cipher.AES.block_size:]).decode().strip()
 
     def __setitem__(self, filename, value):
         fout = open(filename, 'wb')
