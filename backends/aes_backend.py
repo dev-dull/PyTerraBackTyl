@@ -3,7 +3,7 @@ import logging
 
 from itertools import cycle
 from Crypto import Random, Cipher
-from abc_tylstore import TYLPersistent
+from abc_tylstore import TYLPersistent, TYLHelpers
 
 __version__ = '0.2.1'
 
@@ -107,15 +107,12 @@ class AESBackend(TYLPersistent):
         """
         return self.tfstate_aes[self.tfstate_filename]
 
-    # def backend_status(self):
-    #     """
-    #     :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
-    #     """
-    #     return {}
-    #         'filename': self.tfstate_file_name,
-    #         'tfstate_obj_key': self.C.TFSTATE_KEYWORD,
-    #         'lock_state_obj_key': self.C.LOCK_STATE_KEYWORD,
-    #         'tfstate_exists': bool(self.tfstate_shelf[self.C.TFSTATE_KEYWORD]),
-    #         'locked': self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf,
-    #         'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.tfstate_shelf[self.C.TFSTATE_KEYWORD])
-    #     }
+    def backend_status(self):
+        """
+        :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
+        """
+        return {
+            'filename': self.tfstate_filename,
+            'locked': self.tflock_filename in self.tfstate_aes,
+            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.tfstate_aes[self.tfstate_filename])
+        }
