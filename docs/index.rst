@@ -11,7 +11,8 @@
 PyTerraBackTYL
 ==============
 .. image:: /_static/pyterrabacktyl_logo_v2.png
-
+   :align: center
+   :alt: PyTerraBackTYL logo
 
 About:
 ------
@@ -31,6 +32,7 @@ Installation:
     configure_tf_project
     add_post_processors
     troubleshooting
+    thanks
 
 
 

@@ -24,6 +24,8 @@ Full example configuration for the PyShelveBackend module:
 ----------------------------------------------------------
 .. code:: yaml
 
+  BACKEND_CLASS: 'pyshelve_backend.PyShelveBackend'
+
   ##
   ##  pyshelve_backend.PyShelveBackend configuration
   ##

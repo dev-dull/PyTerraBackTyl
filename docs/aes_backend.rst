@@ -33,6 +33,8 @@ Full example configuration for the PyShelveBackend module:
 ----------------------------------------------------------
 .. code:: yaml
 
+  BACKEND_CLASS: 'aes_backend.AESBackend'
+
   ##
   ##  aes_backend.AESBackend configuration
   ##
