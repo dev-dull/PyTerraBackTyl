@@ -10,7 +10,7 @@ PyTerraBackTYL currently comes with three different options for managing the Ter
 - PyShelve
     - This backend plugin will persist the Terraform locking and state as a Python object to disk.
     - Pros: Very fast, easy to configure
-    - Cons: Difficult to visually inspect the contents of locking and state.
+    - Cons: Difficult to visually inspect the contents of locking and state
 - Git
     - This backend plugin will store Terraform locking and state into separate branches of a Git repository
     - Pros: Great for teams, easy to visually inspect state, easy to track changes to state, audit log of changes
