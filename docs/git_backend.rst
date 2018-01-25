@@ -44,11 +44,11 @@ The Git backend plugin keeps Terraform locking and state information in the conf
             - valid values are:
                 - ID: An ID created by Terraform.
                 - Operation: The Terraform operation being carried out (plan, apply, etc.)
-                - Info: (TODO: check terraform documentation)
+                - Info: (check terraform documentation)
                 - Who: The username and hostname who initiated the terraform command.
                 - Version: The version of Terraform that was used.
                 - Created: Timestamp of when the terraform command ws run.
-                - Path: (TODO: check terraform documentation)
+                - Path: (check terraform documentation)
         - :yaml:`GIT_STATE_CHANGE_LOG_SCROLLBACK: 300`
             - The maximum number of rows to keep in log file commited alongside terraform.tfstate.
         - :yaml:`GIT_STATE_CHANGE_LOG_FILENAME: 'state_change.log'`
@@ -60,6 +60,8 @@ The Git backend plugin keeps Terraform locking and state information in the conf
 Full example configuration for GitBackend
 -----------------------------------------
 .. code:: yaml
+
+  BACKEND_CLASS: 'git_backend.GitBackend'
 
   ##
   ##  git_backend.GitBackend configuration
