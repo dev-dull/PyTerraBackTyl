@@ -6,7 +6,8 @@
 .. role:: python(code)
   :language: python
 
-
+.. RST file format reference:
+.. http://docutils.sourceforge.net/docs/ref/rst/directives.html
 
 PyTerraBackTYL
 ==============
