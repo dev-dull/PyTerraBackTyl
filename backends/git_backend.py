@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.3.5'
+__version__ = '1.3.6'
 
 
 class GitBackend(TYLPersistent):
@@ -17,7 +17,7 @@ class GitBackend(TYLPersistent):
 
         # I don't like keeping this here, but this info isn't sent with the current tfstate
         # and I want to keep the commit messages relevant to who has the current lock.
-        self.lock_commit_msg = ''
+        self.lock_commit_msg = 'If you read this, a commit error was prevented.'
 
         self.push_origin = self.C.GIT_DEFAULT_CLONE_BRANCH.split('/')[0]
         # The calls to tempfile.mkdtemp() looks redundant here, but this handles the cases where
@@ -155,6 +155,9 @@ class GitBackend(TYLPersistent):
         return self._store_tfstate(state_obj, **kwargs)
 
     def _store_tfstate(self, state_obj, **kwargs):
+        if not self._get_lock_state():
+            self.lock_commit_msg = 'One-off unlocked change (e.g. `terraform import`)'
+
         backup_file = self.tfstate_file_name+'.backup'
         commit_files = [self.tfstate_file_name]
         if os.path.exists(self.tfstate_file_name):
