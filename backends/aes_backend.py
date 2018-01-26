@@ -5,16 +5,18 @@ from itertools import cycle
 from Crypto import Random, Cipher
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 
 class _lazyAES(object):
-    def __init__(self, key):
+    def __init__(self, key, pad=' '):
         c = cycle(key)
-        self.key = ''.join([next(c) for x in range(0, 32)])
+        self.key = ''.join([next(c) for _ in range(0, 32)])
+        self.pad = pad
+        del c
 
     def encrypt(self, raw):
-        raw += ' ' * (Cipher.AES.block_size - len(raw) % Cipher.AES.block_size)
+        raw += self.pad * (Cipher.AES.block_size - len(raw) % Cipher.AES.block_size)
         iv = Random.new().read(Cipher.AES.block_size)
         cipher = Cipher.AES.new(self.key, Cipher.AES.MODE_CBC, iv)
         return iv + cipher.encrypt(raw)
