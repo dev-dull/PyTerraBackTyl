@@ -14,40 +14,56 @@ from flask import Flask, request, jsonify
 __version__ = '1.4.0'
 backend_service = Flask('PyTerraBackTyl')
 
-# TODO: Foricng a global variable to be thread safe like this isn't a great design.
+# TODO: Use flask's "g" -- `from flask import g` to keep _backends thread-safe
+# http://flask.pocoo.org/docs/0.12/appcontext/
+
+
 class BackendStore(dict):
+    # for fucks sake, why did I do this to myself?
     def __init__(self):
         # TODO: call super().__init__ to support type casting.
+        self.__dict__['env'] = ''
         self.__dict__['thread_lock'] = Lock()
         self.__dict__['allow_tf_lock'] = True
 
     def __getitem__(self, item):
         self.__dict__['thread_lock'].acquire()
-        val = copy(super().__getitem__(item))  # a copy avoids pass-by-reference values that might change after releasing thread lock.
+        self.__set_env_from_url()
+        # a copy avoids pass-by-reference values that might change after releasing thread lock.
+        # Anything beyond that *should* be protected by the terraform lock
+        val = copy(super().__getitem__(self.__dict__['env'])[item])
         self.__dict__['thread_lock'].release()
         # TODO: variable with function level scope should be isolated from thread level changes, but should be tested.
         return val
 
     def __setitem__(self, key, value):
         self.__dict__['thread_lock'].acquire()
-        super().__setitem__(key, value)
+        self.__set_env_from_url()
+        super().__getitem__(self.__dict__['env'])[key] = value
+        # super().__setitem__(key, value)
         self.__dict__['thread_lock'].release()
 
     def __getattr__(self, item):
         self.__dict__['thread_lock'].acquire()
-        val = copy(self.__dict__[item])
+        self.__set_env_from_url()
+        val = copy(getattr(super().__getitem__(self.__dict__['env']), item))
+        # val = copy(self.__dict__[item])
         self.__dict__['thread_lock'].release()
         # TODO: variable with function level scope should be isolated from thread level changes, but should be tested.
         return val
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, item, value):
         self.__dict__['thread_lock'].acquire()
-        self.__dict__[key] = value
+        if item == 'allow_tf_lock':
+            self.__dict__[item] = value
+        else:
+            self.__set_env_from_url()
+            setattr(super().__getitem__(self.__dict__['env']), item, value)
         self.__dict__['thread_lock'].release()
 
-    def get_env_from_url(self):
+    def __set_env_from_url(self):
         self.__dict__['thread_lock'].acquire()
-        # I would hope that request.values is already thread-safe, but let's be paranoid.
+        # Surprisingly, testing shows request.values to be thread-safe
         # Looking at both GET and POST values.
         env = request.values['env'] if 'env' in request.values else ''
         if env not in self:
@@ -82,9 +98,10 @@ class BackendStore(dict):
         # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
         # Things are fucked up if the user got us here.
         lock_state = super().__getitem__(env)[C.TYL_KEYWORD_BACKEND].get_lock_state()
-        self.__dict__['thread_lock'].release()
         if lock_state:
+            self.__dict__['thread_lock'].release()
             return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
+        self.__dict__['thread_lock'].release()
         return 'I don\'t know, man. Something is really fucked up.', \
                C.LOCK_STATES[super().__getitem__(env)[C.TYL_KEYWORD_BACKEND]._lock_state_]
 
@@ -116,13 +133,14 @@ def _json_string(obj):
 
 def _run_post_processors(env):
     # Process the nonpersistant plugins (enabled, but not handling locking).
-    raw_data = request.data.decode()
+    raw_data = request.data.decode()  # Surprisingly, testing shows request.data to be thread-safe
     # 'or' condition in json.loads() handles the situation of `terraform force-unlock <id>`
     # might need a try/except for other undiscovered edge cases.
     args = (json.loads(raw_data.strip() or '{}'),)
     kwargs = {'raw': raw_data}
 
     # Collect all the post-processor functions so we don't have to process this 'if' for every loop iteration.
+    # Surprisingly, testing shows request.method to be thread-safe
     obj_funcs = []
     if request.method == C.HTTP_METHOD_LOCK:
         obj_funcs = [(pp, pp.on_locked) for pp in _backends[env][C.TYL_KEYWORD_POST_PROCESSORS]]
@@ -177,6 +195,7 @@ def tf_unlock():
 def tf_backend():
     env = _backends.get_env_from_url()
 
+    # Surprisingly, testing shows request.method to be thread-safe
     if request.method == 'POST':
         state_text = request.data.decode()
         state_obj = json.loads(state_text)
@@ -249,7 +268,7 @@ def shutdown():
         _backends.allow_tf_lock = False
         for env, backend in _backends.items():
             if backend[C.TYL_KEYWORD_BACKEND]._lock_state_ in [C.LOCK_STATE_INIT, C.LOCK_STATE_LOCKED]:
-                _allow_lock = True
+                _backends.allow_tf_lock = True
                 return 'False', C.HTTP_OK
         from os import getpid
         return str(getpid()), C.HTTP_OK
