@@ -18,6 +18,7 @@ SSL_PRIVATE_KEY: 'ssl/private.key'  # The path and file name of the private SSL 
 HELPER_HOSTNAME_QUERY_MAP:
   digitalocean_droplet: 'modules[*].resources.*.primary.attributes.name'
   vsphere_virtual_machine: '$.modules[*].resources.[?(@.type == "vsphere_virtual_machine")].primary[?(@.memory != 0)].name'
+  aws_instance: '$.modules[*].resources.*.primary.attributes.private_dns'
 
 ##
 ##  pyshelve_backend.PyShelveBackend configuration
