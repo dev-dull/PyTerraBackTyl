@@ -5,6 +5,9 @@
 PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing your Terraform state and locking in whatever way you see fit. By default, PyTerraBackTYL comes with plugins to manage locking and state using Git, or using simple 'shelve' objects to persist to disk. Additionally, non-persistent plugins can be used to automate tasks when a user has issued a `terraform` command, such as automatically adding the new hosts into monitoring, or pushing notifications to Slack like in the provided example.
 
 ## Setup:
+For detailed setup instructions, see the [documentation on readthedocs.io](https://pyterrabacktyl.readthedocs.io/en/latest/).
+
+## Quickstart:
 ### Requirements:
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
   - flask
