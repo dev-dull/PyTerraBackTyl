@@ -1,4 +1,5 @@
 import abc
+import logging
 from CONSTS import C
 
 __version__ = '0.1.6'
@@ -16,12 +17,20 @@ class TYLHelpers(object):
         if isinstance(json_obj, str):
             json_obj = json.loads(json_obj)
 
-        path = '$.modules[*].resources.[?(@.type in ["%s"])].type' % '", "'.join(C.HELPER_HOSTNAME_QUERY_MAP.keys())
-        resource_types = set(jsonpath(json_obj, path) or [])
-
+        state_version = json_obj['version']
         host_list = []
-        for resource_type in resource_types:
-            host_list += jsonpath(json_obj, C.HELPER_HOSTNAME_QUERY_MAP[resource_type])
+
+        if state_version in C.HELPER_HOSTNAME_QUERY_MAP:
+            query_keys = '", "'.join(C.HELPER_HOSTNAME_QUERY_MAP[state_version].keys())
+            paths = {3: '$.modules[*].resources.[?(@.type in ["%s"])].type' % query_keys,
+                     4: 'resources.[?(@.type in ["%s"])].type' % query_keys}
+
+            resource_types = set(jsonpath(json_obj, paths[state_version]) or [])
+
+            for resource_type in resource_types:
+                host_list += jsonpath(json_obj, C.HELPER_HOSTNAME_QUERY_MAP[state_version][resource_type])
+        else:
+            logging.warning('Terraform state format version %s is unsupported.' % state_version)
 
         return host_list
 
