@@ -2,7 +2,7 @@ import abc
 import logging
 from CONSTS import C
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 
 
 class TYLHelpers(object):
