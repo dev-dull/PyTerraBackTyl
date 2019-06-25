@@ -24,6 +24,9 @@ class TYLHelpers(object):
             if isinstance(json_obj, str):
                 json_obj = json.loads(json_obj)
 
+            # leaving `paths` variable and 'version' string hard coded since they shouldn't be changing frequently
+            # and if they do, there's probably more than just user-config changes that need to happen.
+            # TODO: Decide if CONSTS.py is a more logical place for these values.
             state_version = json_obj['version']
 
             if state_version in C.HELPER_HOSTNAME_QUERY_MAP:
