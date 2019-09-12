@@ -43,7 +43,7 @@ class GitBackend(TYLPersistent):
             logging.info('Cloned %s for ENV %s to directory %s' % (self.C.GIT_REPOSITORY, self.ENV, self.working_dir))
 
         # TODO: Yuck. Why doesn't GitPython do this for me?
-        branches = [b.split('-')[0].split('/')[-1].strip() for b in self.repository.branch('-r').splitlines()]
+        branches = [b.split('/')[-1].strip() for b in self.repository.branch('-r').splitlines()]
         if self.ENV in branches:
             self.repository.checkout(self.ENV)
             logging.debug('Checked out existing branch %s' % self.ENV)
