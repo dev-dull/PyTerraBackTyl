@@ -49,6 +49,16 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
                     _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = new_state
                     return _json_string(_backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()), C.HTTP_OK
                 _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = old_state  # maintain the old/bad state.
+            else
+                # The requested state is not acceptable for the current backend state
+                current_state = _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_
+                error_string = 'The requested lock state ' + current_state + ' is the same as the requested lock state ' + new_state
+                if current_state == new_state:
+                    logging.debug(error_string)
+                    return error_string, C.HTTP_CONFLICT
+                else
+                    logging.debug('The requested state %s is not valid for the current state %s.' % (new_state, current_state))
+                    return 'The requested state is not valid for the current state.', c.HTTP_CONFLICT
     # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
     # Things are fucked up if the user got us here.
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
