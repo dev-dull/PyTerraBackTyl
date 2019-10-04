@@ -50,11 +50,11 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
                     return _json_string(_backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()), C.HTTP_OK
                 _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = old_state  # maintain the old/bad state.
     # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
-    # Things are fucked up if the user got us here.
+    # If this section fails, it could indicate a conflict between the true project state and what is stored in memory.
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
     if lock_state:
         return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
-    return 'I don\'t know, man. Something is really fucked up.',\
+    return 'A server error has occured, and the project\'s state could not be changed.',\
            C.LOCK_STATES[_backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_]
 
 def _run_post_processors():
