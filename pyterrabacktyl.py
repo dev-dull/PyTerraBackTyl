@@ -58,7 +58,7 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
                     return error_string, C.HTTP_CONFLICT
                 else:
                     logging.debug('The requested state %s is not valid for the current state %s.' % (new_state, current_state))
-                    return 'The requested state is not valid for the current state.', c.HTTP_CONFLICT
+                    return 'The requested state is not valid for the current state.', C.HTTP_CONFLICT
     # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
     # If this section fails, it could indicate a conflict between the true project state and what is stored in memory.
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
