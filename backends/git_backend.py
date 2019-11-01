@@ -7,7 +7,7 @@ import tempfile
 from collections import defaultdict
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '1.3.5'
+__version__ = '1.3.6b'
 
 
 class GitBackend(TYLPersistent):
@@ -66,8 +66,11 @@ class GitBackend(TYLPersistent):
             logging.warning('Could not properly suppress "N commits ahead of BRANCH" warnings which may result in a 500 error for the user.')
 
     def set_locked(self, state_obj, **kwargs):
-        self.repository.pull()
-        return self._set_locked(state_obj, **kwargs)
+        try:
+            self.repository.pull()
+            return self._set_locked(state_obj, **kwargs)
+        except git.exc.GitCommandError as e:
+            logging.error('General `git` failure in set_locked()')
 
     def _set_locked(self, state_obj, **kwargs):
         # TODO: if the commit/push fails (e.g. because the user.name and user.email vaules weren't set) then we'll appear to be in a locked state when we're not
@@ -91,8 +94,11 @@ class GitBackend(TYLPersistent):
         return True
 
     def set_unlocked(self, state_obj, **kwargs):
-        self.repository.pull()
-        return self._set_unlocked(state_obj, **kwargs)
+        try:
+            self.repository.pull()
+            return self._set_unlocked(state_obj, **kwargs)
+        except git.exc.GitCommandError as e:
+            logging.error('General `git` failure in set_unlocked()')
 
     def _set_unlocked(self, state_obj, **kwargs):
         # Terraform doesn't currently send the lock ID when a force-unlock is done.
@@ -138,8 +144,11 @@ class GitBackend(TYLPersistent):
         del foutin
 
     def get_lock_state(self):
-        self.repository.pull()
-        return self._get_lock_state()
+        try:
+            self.repository.pull()
+            return self._get_lock_state()
+        except git.exc.GitCommandError as e:
+            logging.error('General `git` failure in get_lock_state()')
 
     def _get_lock_state(self):
         if os.path.exists(self.lockfile):
@@ -151,8 +160,11 @@ class GitBackend(TYLPersistent):
         return ''
 
     def store_tfstate(self, state_obj, **kwargs):
-        self.repository.pull()
-        return self._store_tfstate(state_obj, **kwargs)
+        try:
+            self.repository.pull()
+            return self._store_tfstate(state_obj, **kwargs)
+        except git.exc.GitCommandError as e:
+            logging.error('General `git` failure in store_tfstate()')
 
     def _store_tfstate(self, state_obj, **kwargs):
         backup_file = self.tfstate_file_name+'.backup'
@@ -173,8 +185,11 @@ class GitBackend(TYLPersistent):
         logging.debug('Saved state file %s' % self.tfstate_file_name)
 
     def get_tfstate(self):
-        self.repository.pull()
-        return self._get_tfstate()
+        try:
+            self.repository.pull()
+            return self._get_tfstate()
+        except git.exc.GitCommandError as e:
+            logging.error('General `git` failure in get_tfstate()')
 
     def _get_tfstate(self):
         logging.debug('Reading state file %s' % self.tfstate_file_name)

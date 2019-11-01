@@ -9,7 +9,7 @@ from collections import Iterable
 from importlib import import_module
 from flask import Flask, request, jsonify
 
-__version__ = '1.3.11'
+__version__ = '1.3.15b'
 _env = None
 _backends = {}
 _allow_lock = True
@@ -40,21 +40,37 @@ def _json_string(obj):
 def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_state):
     if new_state in C.LOCK_STATES.keys():
         if request.method == accepted_method:
+            old_state = _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_
             if _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ in accepted_states:
-                old_state = _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_
                 _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_INIT
                 lock_text = request.data.decode() or '{}'
-                if set_backend_state(json.loads(lock_text), raw=lock_text):
+
+                try:
+                    lock_obj = json.loads(lock_text)
+                except json.decoder.JSONDecodeError as e:
+                    logging.error('JSON FORMAT: Failed to to parse JSON data sent by client. Raw text follows.')
+                    logging.error(lock_text)
+
+                if set_backend_state(lock_obj, raw=lock_text):
                     logging.debug('Lock state set to %s' % new_state)
                     _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = new_state
                     return _json_string(_backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()), C.HTTP_OK
                 _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = old_state  # maintain the old/bad state.
+            else:
+                # The requested state is not acceptable for the current backend state
+                error_string = 'The previous lock state %s is the same as the requested lock state %s'% (old_state, new_state)
+                if old_state == new_state:
+                    logging.debug(error_string)
+                    return error_string, C.HTTP_CONFLICT
+                else:
+                    logging.debug('The requested state %s is not valid for the current state %s.' % (new_state, old_state))
+                    return 'The requested state is not valid for the current state.', C.HTTP_CONFLICT
     # Lost connection during the last apply, race condition, or someone else changed state out-of-process.
-    # Things are fucked up if the user got us here.
+    # If this section fails, it could indicate a conflict between the true project state and what is stored in memory.
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
     if lock_state:
         return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
-    return 'I don\'t know, man. Something is really fucked up.',\
+    return 'A server error has occured, and the project\'s state could not be changed.',\
            C.LOCK_STATES[_backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_]
 
 def _run_post_processors():
