@@ -7,6 +7,9 @@ PyTerraBackTYL is a generic HTTP/REST backend that uses plugins for managing you
 ## Setup:
 For detailed setup instructions, see the [documentation on readthedocs.io](https://pyterrabacktyl.readthedocs.io/en/latest/).
 
+## Docker:
+Visit [PyTerraBackTYL Docker Hub page](https://hub.docker.com/r/devdull/pyterrabacktyl) to get up and running quickly. By default, the container starts up using the PyShelveBackend module, but contains all package requirements for the GitBackend and the AESBackend.
+
 ## Quickstart:
 ### Requirements:
 - PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
