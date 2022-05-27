@@ -35,5 +35,5 @@ fi
 echo GIT BACKEND USERS: Please make note of your public SSH key >&2
 cat ~/.ssh/id_rsa.pub >&2
 
-python3 pyterrabacktyl.py
+/env/bin/python3 pyterrabacktyl.py
 
