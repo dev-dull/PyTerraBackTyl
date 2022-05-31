@@ -4,7 +4,7 @@ import logging
 
 from abc_tylstore import TYLPersistent, TYLHelpers
 
-__version__ = '0.2.0'
+__version__ = "0.2.0"
 
 
 class _lazyShelf(object):
@@ -37,15 +37,17 @@ class _lazyShelf(object):
 class PyShelveBackend(TYLPersistent):
     def __init__(self, environment, constants, **kwargs):
         self.C = constants
-        self.C.TFSTATE_KEYWORD = 'TFSTATE'
-        self.C.LOCK_STATE_KEYWORD = 'LOCK_STATE'
+        self.C.TFSTATE_KEYWORD = "TFSTATE"
+        self.C.LOCK_STATE_KEYWORD = "LOCK_STATE"
         self.ENV = environment
 
-        self.tfstate_file_name = os.sep.join([self.C.PYSHELVE_DATA_PATH, self.ENV+self.C.PYSHELVE_DB_FILE_NAME])
+        self.tfstate_file_name = os.sep.join(
+            [self.C.PYSHELVE_DATA_PATH, self.ENV + self.C.PYSHELVE_DB_FILE_NAME]
+        )
         self.tfstate_shelf = _lazyShelf(self.tfstate_file_name)
 
         if self.C.TFSTATE_KEYWORD not in self.tfstate_shelf:
-            self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = ''
+            self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = ""
 
     def set_locked(self, state_obj, **kwargs):
         """
@@ -54,10 +56,12 @@ class PyShelveBackend(TYLPersistent):
         :return: True on successful lock, False if something prevented the lock from happening.
         """
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
-            logging.warning('Failed to obtain lock for ENV %s, already locked' % self.ENV)
+            logging.warning(
+                "Failed to obtain lock for ENV %s, already locked" % self.ENV
+            )
             return False
 
-        logging.info('Locking ENV %s' % self.ENV)
+        logging.info("Locking ENV %s" % self.ENV)
         self.tfstate_shelf[self.C.LOCK_STATE_KEYWORD] = state_obj
         return True
 
@@ -74,7 +78,9 @@ class PyShelveBackend(TYLPersistent):
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
             del self.tfstate_shelf[self.C.LOCK_STATE_KEYWORD]
             return True
-        logging.warning('Failed to release lock for ENV %s, already unlocked!' % self.ENV)
+        logging.warning(
+            "Failed to release lock for ENV %s, already unlocked!" % self.ENV
+        )
         return False
 
     def get_lock_state(self):
@@ -84,7 +90,7 @@ class PyShelveBackend(TYLPersistent):
         """
         if self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf:
             return self.tfstate_shelf[self.C.LOCK_STATE_KEYWORD]
-        return ''
+        return ""
 
     def store_tfstate(self, tfstate_obj, **kwargs):
         """
@@ -92,7 +98,7 @@ class PyShelveBackend(TYLPersistent):
         :param kwargs: Includes 'raw' which has the json text as a string (str)
         """
         self.tfstate_shelf[self.C.TFSTATE_KEYWORD] = tfstate_obj
-        logging.debug('Saved state file for env %s' % self.ENV)
+        logging.debug("Saved state file for env %s" % self.ENV)
 
     def get_tfstate(self):
         """
@@ -105,10 +111,12 @@ class PyShelveBackend(TYLPersistent):
         :return: Health and status information in a JSON compatible format. This function is optional and may be omitted.
         """
         return {
-            'filename': self.tfstate_file_name,
-            'tfstate_obj_key': self.C.TFSTATE_KEYWORD,
-            'lock_state_obj_key': self.C.LOCK_STATE_KEYWORD,
-            'tfstate_exists': bool(self.tfstate_shelf[self.C.TFSTATE_KEYWORD]),
-            'locked': self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf,
-            'built_hosts': TYLHelpers.get_hostnames_from_tfstate(self.tfstate_shelf[self.C.TFSTATE_KEYWORD])
+            "filename": self.tfstate_file_name,
+            "tfstate_obj_key": self.C.TFSTATE_KEYWORD,
+            "lock_state_obj_key": self.C.LOCK_STATE_KEYWORD,
+            "tfstate_exists": bool(self.tfstate_shelf[self.C.TFSTATE_KEYWORD]),
+            "locked": self.C.LOCK_STATE_KEYWORD in self.tfstate_shelf,
+            "built_hosts": TYLHelpers.get_hostnames_from_tfstate(
+                self.tfstate_shelf[self.C.TFSTATE_KEYWORD]
+            ),
         }
