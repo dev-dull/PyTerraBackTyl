@@ -1,3 +1,5 @@
+Hey! This is a weird way of sending info, but FYI, I recommend forking and working off the 'beta' branch. 
+
 # PyTerraBackTYL
 ![PyTerraBackTYL logo](http://www.devdull.lol/pyterrabacktyl/pyterrabacktyl_logo_v2.png)
 
