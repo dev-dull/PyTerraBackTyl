@@ -12,7 +12,7 @@ Visit [PyTerraBackTYL Docker Hub page](https://hub.docker.com/r/devdull/pyterrab
 
 ## Quickstart:
 ### Requirements:
-- PyTerraBackTYL was developed using Python 3.6 and is subsequently recommended, but 3.4 and 3.5 have been tested and known to work well.
+- PyTerraBackTYL was developed using Python 3.6 and has since been updated to require Python 3.10. Please open a GitHub Isssue for any Python changes that have broken functionality.
   - flask
   - pyyaml
   - jsonpath

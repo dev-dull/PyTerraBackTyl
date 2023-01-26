@@ -21,7 +21,7 @@ def load_from_yaml(yaml_configuration_file, const_object):
         fin = open(yaml_configuration_file, 'r')
         raw_yaml = fin.read()
         fin.close()
-        __populate_object(const_object, yaml.load(raw_yaml))
+        __populate_object(const_object, yaml.load(raw_yaml, Loader=yaml.SafeLoader))
     except IOError as e:
         logging.error('Could not open config file %s. Bailing out.' % yaml_configuration_file)
         raise e
