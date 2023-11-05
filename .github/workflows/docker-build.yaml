@@ -5,13 +5,13 @@ on:
   push:
     branches: [ "master", "development", "ci" ]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: [ 'v*.*.*', 'testtag' ]
   pull_request:
     branches: [ "master", "development", "ci" ]
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
+  REGISTRY: docker.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: "devdull/pyterrabacktyl"
 
@@ -52,8 +52,8 @@ jobs:
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
@@ -78,7 +78,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Show Docker Tags
-        run: docker image ls *:*
+        run: docker images
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
