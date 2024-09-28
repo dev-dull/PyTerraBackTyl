@@ -63,7 +63,7 @@ jobs:
       - name: Run New Docker Image
         id: run-pyterrabacktyl-image
         run: |
-          docker run ${{ env.IMAGE_NAME }}
+          docker run -d localhost/${{ env.IMAGE_NAME }}
 
       - name: Show Docker Tags
         run: docker images
