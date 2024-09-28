@@ -13,7 +13,7 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: docker.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/pyterrabacktyl:${{ github.ref == 'main' && 'latest' || github.ref }}
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/pyterrabacktyl:${{ github.ref == 'main' && 'latest' || github.event.pull_request.base.ref }}
 
 
 jobs:
