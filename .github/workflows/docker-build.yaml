@@ -25,7 +25,7 @@ jobs:
           echo '## Image Details' >> $GITHUB_STEP_SUMMARY
           docker images | sed -r 's/\s+/|/g' | grep -E '^R' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
           echo '----------'
-          docker images | sed -r 's/\s+/|/g' | grep -E 'pyterrabacktyl|^R' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
+          docker images | sed -r 's/\s+/|/g' | grep -E 'pyterrabacktyl' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
 
       - name: Run Docker Container
         run: |
