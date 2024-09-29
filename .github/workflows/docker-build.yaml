@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker run -d --name ${{ env.INSTANCE_NAME }} ${{ env.CODELINE }}_validation ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
+          docker run -d --name ${{ env.INSTANCE_NAME }} ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
 
       # - name: Clean Up
       #   run: |
