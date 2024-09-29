@@ -3,7 +3,7 @@ name: Build and Run Docker Image
 on:
   push:
     branches:
-      - 'release/**'  # Trigger on push to release branches
+      - 'ci'  # Trigger on push to release branches
 
 jobs:
   build_and_run:
