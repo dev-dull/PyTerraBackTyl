@@ -23,7 +23,7 @@ jobs:
         run: |
           docker build . --file Dockerfile --tag ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
           echo '## Image Details' >> $GITHUB_STEP_SUMMARY
-          header=$(docker images | sed -r 's/\s+/|/g' | grep -E '^R' | sed -r 's/^|$/\|/g')
+          header=$(docker images | sed -r 's/\s{2,}/|/g' | grep -E '^R' | sed -r 's/^|$/\|/g')
           echo "$header" >> $GITHUB_STEP_SUMMARY
           echo "$header" | sed -r 's/[^|]/-/g' >> $GITHUB_STEP_SUMMARY
           docker images | sed -r 's/\s{2,}/|/g' | grep -E 'pyterrabacktyl' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
