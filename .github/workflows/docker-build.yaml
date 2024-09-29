@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Image name
+      - name: Build Image Name
         run: |
           echo DOCKER_IMAGE_NAME=$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV
           echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV
@@ -22,12 +22,15 @@ jobs:
       - name: Build Docker Image
         run: |
           docker build . --file Dockerfile --tag ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
+          echo '## Image Details' >> $GITHUB_STEP_SUMMARY
+          docker images | sed -r 's/\s+/|/g' | grep -E 'pyterrabacktyl|^R' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
 
       - name: Run Docker Container
         run: |
           docker run -d --name ${{ env.INSTANCE_NAME }} ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
 
-      # - name: Clean Up
-      #   run: |
-      #     docker rm -f my_running_container || true
-      #     docker rmi $DOCKER_IMAGE_NAME:$CODELINE || true
+      - name: Clean Up
+      # Hopefully this is being nice to GHA infra and not wasted CPU cycles
+        run: |
+          docker rm -f ${{ env.INSTANCE_NAME }} || true
+          docker rmi ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }} || true
