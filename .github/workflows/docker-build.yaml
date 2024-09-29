@@ -32,6 +32,17 @@ jobs:
         run: |
           docker run -d --name ${{ env.INSTANCE_NAME }} ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
 
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6  # Specify the version of Terraform you want to use
+
+      - name: Run Terraform Test
+        run: |
+          cd .github/build_tests
+          terraform init
+          terraform plan
+
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
         run: |
