@@ -29,8 +29,8 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker images
-          #docker run --name my_running_container $DOCKER_IMAGE_NAME:$RELEASE_VERSION
+          # docker images
+          docker run -d --name my_running_container $DOCKER_IMAGE_NAME:$RELEASE_VERSION
 
       # - name: Clean Up
       #   run: |
