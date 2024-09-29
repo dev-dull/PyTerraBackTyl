@@ -24,7 +24,7 @@ jobs:
           docker build . --file Dockerfile --tag ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
           echo '## Image Details' >> $GITHUB_STEP_SUMMARY
           docker images | sed -r 's/\s+/|/g' | grep -E '^R' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
-          echo '----------'
+          echo '----------' >> $GITHUB_STEP_SUMMARY
           docker images | sed -r 's/\s+/|/g' | grep -E 'pyterrabacktyl' | sed -r 's/^|$/\|/g' >> $GITHUB_STEP_SUMMARY
 
       - name: Run Docker Container
