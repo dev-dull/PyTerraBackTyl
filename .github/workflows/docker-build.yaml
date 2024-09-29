@@ -26,6 +26,7 @@ jobs:
       - name: Build Docker Image
         run: |
           echo ${{env.IMAGE_NAME}}:${{ github.ref_name }}
+          echo IMAGE_NAME=${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]'
       #     docker build . --file Dockerfile --tag $DOCKER_IMAGE_NAME:$RELEASE_VERSION
 
       # - name: Run Docker Container
