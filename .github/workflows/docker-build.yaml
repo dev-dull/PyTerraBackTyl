@@ -23,14 +23,15 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build . --file Dockerfile --tag $DOCKER_IMAGE_NAME:$RELEASE_VERSION
+          echo $DOCKER_IMAGE_NAME:$RELEASE_VERSION
+      #     docker build . --file Dockerfile --tag $DOCKER_IMAGE_NAME:$RELEASE_VERSION
 
-      - name: Run Docker Container
-        run: |
-          docker images
-          #docker run --name my_running_container $DOCKER_IMAGE_NAME:$RELEASE_VERSION
+      # - name: Run Docker Container
+      #   run: |
+      #     docker images
+      #     #docker run --name my_running_container $DOCKER_IMAGE_NAME:$RELEASE_VERSION
 
-      - name: Clean Up
-        run: |
-          docker rm -f my_running_container || true
-          docker rmi $DOCKER_IMAGE_NAME:$RELEASE_VERSION || true
+      # - name: Clean Up
+      #   run: |
+      #     docker rm -f my_running_container || true
+      #     docker rmi $DOCKER_IMAGE_NAME:$RELEASE_VERSION || true
