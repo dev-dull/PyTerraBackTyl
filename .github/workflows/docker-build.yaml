@@ -35,6 +35,7 @@ jobs:
       - name: Validate PyTerraBackTYL is up
         run: |
           # [ $(curl -sS http://localhost:2442/state | jq -r .backend_module) == "pyshelve_backend.PyShelveBackend" ]
+          sleep 30 # huh
           curl -sS http://localhost:2442/state | jq
 
       - name: Set up Terraform
