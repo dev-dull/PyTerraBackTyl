@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker run -d --name ${{ env.INSTANCE_NAME }} ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
+          docker run -d --name ${{ env.INSTANCE_NAME }} -p 2442:2442 ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
 
       - name: Validate PyTerraBackTYL is up
         run: |
