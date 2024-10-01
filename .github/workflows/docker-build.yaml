@@ -48,6 +48,7 @@ jobs:
           terraform init
           terraform plan
           terraform apply --auto-approve
+          ls -lah
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
