@@ -49,8 +49,15 @@ jobs:
           terraform plan
           terraform apply --auto-approve
           docker logs ${{ env.INSTANCE_NAME }}
-          curl http://localhost:2442/?env=InT
+          echo TFSTATE=$(http://localhost:2442/?env=InT) | tee -a $GITHUB_ENV
           cat example_server.txt
+      - name: Validate Terraform State
+        run: |
+          TF_CONTENT=$(echo $TFSTATE | jq -r .resources[].instances[].attributes.content)
+          FILE_CONTENT=$(cat example_server.txt)
+          if [[ ${TF_CONTENT} != ${FILE_CONTENT} ]]; then
+            exit 1
+          fi
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
