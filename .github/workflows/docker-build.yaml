@@ -48,6 +48,8 @@ jobs:
           terraform init
           terraform plan
           terraform apply --auto-approve
+          docker logs ${{ env.INSTANCE_NAME }}
+          curl http://localhost:2442/?env=InT
           ls -lah
 
       - name: Clean Up
