@@ -53,6 +53,7 @@ jobs:
           cat example_server.txt
       - name: Validate Terraform State
         run: |
+          cd .github/build_tests
           TF_CONTENT=$(echo $TFSTATE | jq -r .resources[].instances[].attributes.content)
           FILE_CONTENT=$(cat example_server.txt)
           if [[ ${TF_CONTENT} != ${FILE_CONTENT} ]]; then
