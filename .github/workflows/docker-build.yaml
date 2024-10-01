@@ -49,7 +49,7 @@ jobs:
           terraform plan
           terraform apply --auto-approve
           docker logs ${{ env.INSTANCE_NAME }}
-          echo TFSTATE=$(http://localhost:2442/?env=InT) | tee -a $GITHUB_ENV
+          echo TFSTATE=$(curl -sS http://localhost:2442/?env=InT) | tee -a $GITHUB_ENV
           cat example_server.txt
       - name: Validate Terraform State
         run: |
