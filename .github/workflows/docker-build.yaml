@@ -57,6 +57,7 @@ jobs:
           TF_CONTENT=$(echo '${{ env.TFSTATE }}' | jq -r .resources[].instances[].attributes.content)
           FILE_CONTENT=$(cat example_server.txt)
           if [[ ${TF_CONTENT} != ${FILE_CONTENT} ]]; then
+            echo ${TF_CONTENT} != ${FILE_CONTENT} >&2
             exit 1
           fi
 
