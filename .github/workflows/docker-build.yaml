@@ -50,7 +50,7 @@ jobs:
           terraform apply --auto-approve
           docker logs ${{ env.INSTANCE_NAME }}
           curl http://localhost:2442/?env=InT
-          ls -lah
+          cat example_server.txt
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
