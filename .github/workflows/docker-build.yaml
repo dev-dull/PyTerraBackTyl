@@ -54,7 +54,7 @@ jobs:
       - name: Validate Terraform State
         run: |
           cd .github/build_tests
-          TF_CONTENT=$(echo '${{ env.TFSTATE }}' | jq -r .resources[].instances[].attributes.content)
+          TF_CONTENT=$(echo '${{ env.TFSTATE }}' | jq -r '.resources[].instances[].attributes.content | select(. != null)')
           FILE_CONTENT=$(cat example_server.txt)
           if [[ ${TF_CONTENT} != ${FILE_CONTENT} ]]; then
             echo ${TF_CONTENT} != ${FILE_CONTENT} >&2
