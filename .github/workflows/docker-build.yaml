@@ -34,19 +34,14 @@ jobs:
 
       - name: Wait for PyTerraBackTYL to start
         run: |
-          echo 'huh???'
-          ct=0
-          echo 'wut?'
-          while [ "$(echo $STATE | jq -r .backend_module || true)" != "pyshelve_backend.PyShelveBackend" ]
+          for ct in {0..9}
           do
-            ((ct++))
-            echo ct: $ct
-            if [ $ct -gt 9 ]; then
-              echo "bail out"
-              exit 1
-            fi
-            sleep 1
             STATE=$(curl -sS http://localhost:2442/state)
+            if [ "$(echo $STATE | jq -r .backend_module)" != "pyshelve_backend.PyShelveBackend" ]; then
+              sleep 1
+            else
+              break
+            fi
           done
 
       - name: Set up Terraform
