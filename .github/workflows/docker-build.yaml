@@ -32,10 +32,18 @@ jobs:
         run: |
           docker run -d --name ${{ env.INSTANCE_NAME }} -p 2442:2442 ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
 
-      - name: Validate PyTerraBackTYL is up
+      - name: Wait for PyTerraBackTYL to start
         run: |
-          sleep 10
-          [ $(curl -sS http://localhost:2442/state | jq -r .backend_module) == "pyshelve_backend.PyShelveBackend" ]
+          let ct=0
+          while [ $(echo $STATE | jq -r .backend_module) != "pyshelve_backend.PyShelveBackend" ]
+          do
+            let ct=$ct+1
+            if [ $ct -gt 9 ]; then
+              exit 1
+            fi
+            sleep 1
+            STATE=$(curl -sS http://localhost:2442/state)
+          done
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
