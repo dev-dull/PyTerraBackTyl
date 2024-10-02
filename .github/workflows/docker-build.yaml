@@ -36,7 +36,7 @@ jobs:
         run: |
           for ct in {0..9}
           do
-            STATE=$(curl -sS http://localhost:2442/state)
+            STATE=$(curl -sS http://localhost:2442/state || true)
             if [ "$(echo $STATE | jq -r .backend_module)" != "pyshelve_backend.PyShelveBackend" ]; then
               sleep 1
             else
