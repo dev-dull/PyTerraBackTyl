@@ -34,15 +34,18 @@ jobs:
 
       - name: Wait for PyTerraBackTYL to start
         run: |
+          cmd="exit 1"
           for ct in {0..9}
           do
             STATE=$(curl -sS http://localhost:2442/state || true)
             if [ "$(echo $STATE | jq -r .backend_module)" != "pyshelve_backend.PyShelveBackend" ]; then
               sleep 1
             else
+              cmd="exit 0"
               break
             fi
           done
+          echo $cmd | bash
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
