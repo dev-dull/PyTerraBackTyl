@@ -38,6 +38,7 @@ jobs:
           while [ $(echo $STATE | jq -r .backend_module) != "pyshelve_backend.PyShelveBackend" ]
           do
             let ct=$ct+1
+            echo ct: $ct
             if [ $ct -gt 9 ]; then
               exit 1
             fi
