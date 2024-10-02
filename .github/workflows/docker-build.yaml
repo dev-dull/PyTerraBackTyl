@@ -37,7 +37,7 @@ jobs:
           echo 'huh???'
           ct=0
           echo 'wut?'
-          while [ "$(echo $STATE | jq -r .backend_module)" != "pyshelve_backend.PyShelveBackend" ]
+          while [ "$(echo $STATE | jq -r .backend_module || true)" != "pyshelve_backend.PyShelveBackend" ]
           do
             ((ct++))
             echo ct: $ct
