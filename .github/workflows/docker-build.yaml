@@ -69,6 +69,12 @@ jobs:
             echo ${TF_CONTENT} != ${FILE_CONTENT} >&2
             exit 1
           fi
+      - name: Validate terraform state changed
+        run: |
+          CURRENT_NULL_RESOURCE_ID=$(echo '${{env.TF_STATE}}' | jq -r '.resources[] | select(.type == "null_resource") | .instances[].attributes.id')
+          terraform apply --auto-approve
+          NEW_NULL_RESOURCE_ID=$(curl -sS http://localhost:2442/?env=InT | jq -r '.resources[] | select(.type == "null_resource") | .instances[].attributes.id')
+          [ "${CURRENT_NULL_RESOURCE_ID}" -ne "${NEW_NULL_RESOURCE_ID}" ]
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
