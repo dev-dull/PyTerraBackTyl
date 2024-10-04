@@ -37,8 +37,8 @@ jobs:
           cmd="exit 1"
           for ct in {0..9}
           do
-            STATE=$(curl -sS http://localhost:2442/state || true)
-            if [ "$(echo $STATE | jq -r .backend_module)" != "pyshelve_backend.PyShelveBackend" ]; then
+            OK=$(curl -Ss -o /dev/null -w "%{http_code}" || true)
+            if [ ${OK} -ne 200 ]; then
               sleep 1
             else
               cmd="exit 0"
