@@ -34,18 +34,17 @@ jobs:
 
       - name: Wait for PyTerraBackTYL to start
         run: |
-          cmd="exit 1"
           for ct in {0..9}
           do
-            OK=$(curl -Ss -o /dev/null -w "%{http_code}" http://localhost:2442 || true)
+            # OK=$(curl -Ss -o /dev/null -w "%{http_code}" http://localhost:2442 || true)
+            OK=$(curl -Ss -o /dev/null -w "%{http_code}" || true)
             if [ ${OK} -ne 200 ]; then
               sleep 1
             else
-              cmd="exit 0"
-              break
+              exit 0
             fi
           done
-          echo $cmd | bash
+          exit 1
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
