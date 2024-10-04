@@ -36,10 +36,10 @@ jobs:
         run: |
           for ct in {0..9}
           do
-            # set +e
+            set +e
             # OK=$(curl -Ss -o /dev/null -w "%{http_code}" http://localhost:2442 || true)
-            OK=$(curl -Ss -o /dev/null -w "%{http_code}" || true)
-            # set -e
+            OK=$(curl -Ss -o /dev/null -w "%{http_code}")
+            set -e
             if [ ${OK} -ne 200 ]; then
               echo "waiting..."
               sleep 1
