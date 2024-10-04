@@ -75,6 +75,8 @@ jobs:
           CURRENT_NULL_RESOURCE_ID=$(echo '${{env.TFSTATE}}' | jq -r '.resources[] | select(.type == "null_resource") | .instances[].attributes.id')
           terraform apply --auto-approve
           NEW_NULL_RESOURCE_ID=$(curl -sS http://localhost:2442/?env=InT | jq -r '.resources[] | select(.type == "null_resource") | .instances[].attributes.id')
+          [ -n "${NEW_NULL_RESOURCE_ID}" ]
+          [ -n "${CURRENT_NULL_RESOURCE_ID}"]
           [ "${CURRENT_NULL_RESOURCE_ID}" -ne "${NEW_NULL_RESOURCE_ID}" ]
 
       - name: Clean Up
