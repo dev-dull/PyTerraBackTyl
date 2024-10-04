@@ -2,13 +2,13 @@ terraform {
   required_version = ">= 1.2.0"
 }
 
-resource "local_file" "example_file" {
-  content  = "This is a simulated server configuration."
-  filename = "${path.module}/example_server.txt"
+resource "local_file" "test_file" {
+  content  = "This is a local file."
+  filename = "${path.module}/test.txt"
 }
 
 output "file_path" {
-  value = local_file.example_file.filename
+  value = local_file.test_file.filename
 }
 
 terraform {
@@ -20,9 +20,9 @@ terraform {
   }
 }
 
-resource "null_resource" "simulated_server" {
+resource "null_resource" "null_file" {
   provisioner "local-exec" {
-    command = "echo 'Simulated server created at $(date)' > simulated_server.txt"
+    command = "echo Null resource created at $(date) > null_file.txt"
   }
 
   triggers = {
@@ -30,6 +30,6 @@ resource "null_resource" "simulated_server" {
   }
 }
 
-output "simulated_server_file" {
-  value = null_resource.simulated_server.id
+output "null_file_output" {
+  value = null_resource.null_file.id
 }
