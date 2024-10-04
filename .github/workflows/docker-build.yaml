@@ -64,7 +64,7 @@ jobs:
         run: |
           cd .github/build_tests
           TF_CONTENT=$(echo '${{ env.TFSTATE }}' | jq -r '.resources[].instances[].attributes.content | select(. != null)')
-          FILE_CONTENT=$(cat test.txt.txt)
+          FILE_CONTENT=$(cat test.txt)
           if [[ ${TF_CONTENT} != ${FILE_CONTENT} ]]; then
             echo ${TF_CONTENT} != ${FILE_CONTENT} >&2
             exit 1
