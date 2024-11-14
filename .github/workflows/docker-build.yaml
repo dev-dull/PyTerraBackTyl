@@ -78,6 +78,12 @@ jobs:
           [ -n "${NEW_NULL_RESOURCE_ID}" ]
           [ -n "${CURRENT_NULL_RESOURCE_ID}" ]
           [ "${CURRENT_NULL_RESOURCE_ID}" -ne "${NEW_NULL_RESOURCE_ID}" ]
+      - name: Run Terraform Test, Locked ENV
+        run: |
+          curl -X LOCK -sS http://localhost:2442/?env=InT
+          set +e
+          terraform apply --auto-approve
+          echo $? ALASTAIR
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
