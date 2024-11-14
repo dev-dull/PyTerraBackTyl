@@ -84,7 +84,11 @@ jobs:
           cd .github/build_tests
           set +e
           terraform apply --auto-approve
-          echo $? ALASTAIR
+          e=$?
+          sent -e
+          if [ $e -eq 0 ]; then
+            exit 1
+          fi
 
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not wasted CPU cycles
