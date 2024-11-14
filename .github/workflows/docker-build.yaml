@@ -81,6 +81,7 @@ jobs:
       - name: Run Terraform Test, Locked ENV
         run: |
           curl -X LOCK -sS http://localhost:2442/?env=InT
+          cd .github/build_tests
           set +e
           terraform apply --auto-approve
           echo $? ALASTAIR
