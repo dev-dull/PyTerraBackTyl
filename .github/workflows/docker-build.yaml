@@ -79,15 +79,23 @@ jobs:
           [ -n "${CURRENT_NULL_RESOURCE_ID}" ]
           [ "${CURRENT_NULL_RESOURCE_ID}" -ne "${NEW_NULL_RESOURCE_ID}" ]
       - name: Run Terraform Test, Locked ENV
+        continue-on-error: true
         run: |
           curl -X LOCK -sS http://localhost:2442/lock?env=InT
           cd .github/build_tests
-          set +e
           terraform apply --auto-approve
-          e=$?
-          curl -X UNLOCK -sS http://localhost:2442/unlock?env=InT
-          set -e
-          if [ $e -eq 0 ]; then
+      - name: Verify Command Failed Successfully
+        run: |
+          if [ "${{ steps.run_command.outcome }}" != "success" ]; then
+            if [ "${{ steps.run_command.exit_code }}" -eq 1 ]; then
+              echo "Environment lock was successful"
+              curl -X UNLOCK -sS http://localhost:2442/unlock?env=InT
+            else
+              echo "Step failed with unexpected exit code ${{ steps.run_command.exit_code }}."
+              exit 1
+            fi
+          else
+            echo "Step succeeded unexpectedly."
             exit 1
           fi
 
