@@ -85,7 +85,9 @@ jobs:
           curl -X LOCK -sS http://localhost:2442/lock?env=InT
           cd .github/build_tests
           terraform apply --auto-approve
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          e=$?
+          echo ${e}
+          echo "exit_code=${e}" >> $GITHUB_OUTPUT
       - name: Verify Command Failed Successfully
         run: |
           if [ "${{ steps.prelock_InT.outcome }}" != "success" ]; then
