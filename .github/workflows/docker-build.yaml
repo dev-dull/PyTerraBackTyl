@@ -85,7 +85,8 @@ jobs:
           set +e
           terraform apply --auto-approve
           e=$?
-          sent -e
+          curl -X UNLOCK -sS http://localhost:2442/unlock?env=InT
+          set -e
           if [ $e -eq 0 ]; then
             exit 1
           fi
