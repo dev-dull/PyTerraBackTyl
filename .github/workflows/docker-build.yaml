@@ -85,15 +85,15 @@ jobs:
           curl -X LOCK -sS http://localhost:2442/lock?env=InT
           cd .github/build_tests
           terraform apply --auto-approve
-          exit $?
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
       - name: Verify Command Failed Successfully
         run: |
           if [ "${{ steps.prelock_InT.outcome }}" != "success" ]; then
-            if [ "${{ steps.prelock_InT.exit_code }}" -eq 1 ]; then
+            if [ "${{ steps.prelock_InT.outputs.exit_code }}" -eq 1 ]; then
               echo "Environment lock was successful"
               curl -X UNLOCK -sS http://localhost:2442/unlock?env=InT
             else
-              echo "Step failed with unexpected exit code ${{ steps.prelock_InT.exit_code }}."
+              echo "Step failed with unexpected exit code ${{ steps.prelock_InT.outputs.exit_code }}."
               exit 1
             fi
           else
