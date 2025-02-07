@@ -100,7 +100,7 @@ jobs:
           echo '## Terraform ${{ matrix.terraform_version }}' >> $GITHUB_STEP_SUMMARY
           COLS="|Test Name|Status|"
           echo $COLS | tee -a $GITHUB_STEP_SUMMARY
-          echo $COLS | sed -r 's/[^|]/-/g' >> $GITHUB_STEP_SUMMARY
+          echo $COLS | sed -r 's/[^|]/-/g' >> $GITHUB_STEP_SUMMARY  # use >> -- no sense in logging this
 
       - name: Run 'happy-path' Test
         run: |
@@ -119,7 +119,7 @@ jobs:
           cd .github/build_tests
           TF_CONTENT=$(echo '${{ env.TFSTATE }}' | jq -r '.resources[].instances[].attributes.content | select(. != null)')
           FILE_CONTENT=$(cat test.txt)
-          if [[ "${TF_CONTENT}"" != "${FILE_CONTENT}"" ]]; then
+          if [[ "${TF_CONTENT}" != "${FILE_CONTENT}" ]]; then
             echo ${TF_CONTENT} != ${FILE_CONTENT} >&2
             exit 1
           fi
