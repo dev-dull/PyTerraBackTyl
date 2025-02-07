@@ -102,7 +102,11 @@ jobs:
 
       - name: Set Summary Headers
         run: |
-          echo -e """RESULTS=${{ env.COLS }}\n$(echo '${{ env.COLS }}' | sed -r 's/[^|]/-/g')""" >> $GITHUB_ENV
+          # echo -e """RESULTS=${{ env.COLS }}\n$(echo '${{ env.COLS }}' | sed -r 's/[^|]/-/g')""" >> $GITHUB_ENV
+          {
+            echo "RESULTS=${{ env.COLS }}"
+            echo $(echo '${{ env.COLS }}' | sed -r 's/[^|]/-/g')
+          } | tee -a GITHUB_ENV
 
       - name: Run 'happy-path' Test
         run: |
