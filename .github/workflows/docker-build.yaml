@@ -164,7 +164,7 @@ jobs:
             {
               echo -e "RESULTS=${{ env.RESULTS}}"
               echo -e "|Locked Environment is Blocking|✅ Success|"
-            } | tee -a GITHUB_ENV
+            } | tee -a $GITHUB_STEP_SUMMARY
           else
             # Picked confusing wording just to be silly
             echo "Step unexpectedly failed to fail as expected."
