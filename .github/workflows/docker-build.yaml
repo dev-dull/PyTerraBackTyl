@@ -52,10 +52,10 @@ jobs:
 
     steps:
       - name: Download Docker Image
-          uses: actions/download-artifact@v3
-          with:
-            name: ${{ github.event.repository.name }}.tar
-            path: /tmp
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ github.event.repository.name }}.tar
+          path: /tmp
 
       - name: Load Docker Image
         run: |
