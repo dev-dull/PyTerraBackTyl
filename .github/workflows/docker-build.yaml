@@ -55,6 +55,10 @@ jobs:
           - '1.3.9'   # Popular
 
     steps:
+      steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Download Docker Image
         uses: actions/download-artifact@v4
         with:
