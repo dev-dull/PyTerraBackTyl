@@ -5,8 +5,8 @@ on:
     branches:
       - 'ci'  # TODO: Trigger on push to release branches
 jobs:
-  runs-on: ubuntu-latest
   bunt_cake:
+    runs-on: ubuntu-latest
     steps:
       - name: echo one
         run: |
