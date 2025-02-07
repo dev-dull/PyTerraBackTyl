@@ -42,7 +42,7 @@ jobs:
 
   run_and_test:
     runs-on: ubuntu-latest
-    depends-on: build
+    needs: build
     strategy:
       matrix:
         # TODO: Test OpenTofu
