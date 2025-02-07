@@ -90,7 +90,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ matrix.terraform_version }}  # Specify the version of Terraform you want to use
+          terraform_version: ${{ matrix.terraform_version }}
 
       - name: Run 'happy-path' Test
         run: |
@@ -133,6 +133,7 @@ jobs:
           curl -X LOCK -sS http://localhost:2442/lock?env=InT
           cd .github/build_tests
           terraform apply --auto-approve
+          echo TEST >> $GITHUB_STEP_SUMMARY
           e=$?
           echo ${e}
           echo "exit_code=${e}" >> $GITHUB_OUTPUT
