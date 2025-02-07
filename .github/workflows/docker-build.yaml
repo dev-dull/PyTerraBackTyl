@@ -31,7 +31,7 @@ jobs:
           docker save ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }} -o /tmp/${{ github.event.repository.name }}.tar
 
       - name: Upload Docker Image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}.tar
           path: /tmp/${{ github.event.repository.name }}.tar
@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: Download Docker Image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}.tar
           path: /tmp
