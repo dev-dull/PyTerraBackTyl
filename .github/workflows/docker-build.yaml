@@ -99,7 +99,7 @@ jobs:
         run: |
           echo '## Terraform ${{ matrix.terraform_version }}' >> $GITHUB_STEP_SUMMARY
           COLS="|Test Name|Status|"
-          echo -e "RESULTS=$COLS\n$COLS | sed -r 's/[^|]/-/g'\N" | tee -a $GITHUB_ENV
+          echo -e "RESULTS=$COLS\n$(echo $COLS | sed -r 's/[^|]/-/g')" | tee -a $GITHUB_ENV
 
       - name: Run 'happy-path' Test
         run: |
