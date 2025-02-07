@@ -8,17 +8,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    outputs:
+      DOCKER_IMAGE_NAME: ${{ steps.build-image-name.outputs.DOCKER_IMAGE_NAME }}
+      CODELINE: ${{ steps.build-image-name.outputs.CODELINE }}
+      INSTANCE_NAME: ${{ steps.build-image-name.outputs.INSTANCE_NAME }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Build Image Name
+        id: build-image-name
         run: |
-          echo DOCKER_IMAGE_NAME=$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV
-          echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV
-          echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV
-          echo TEST_RESULTS= | tee -a $GITHUB_ENV  # Added here for visability
+          echo DOCKER_IMAGE_NAME=$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
 
       - name: Build Docker Image
         run: |
@@ -64,7 +67,7 @@ jobs:
 
       - name: Run Docker Container
         run: |
-          docker run -d --name ${{ env.INSTANCE_NAME }} -p 2442:2442 ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }}
+          docker run -d --name ${{ needs.build.outputs.INSTANCE_NAME }} -p 2442:2442 ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
 
       - name: Wait for PyTerraBackTYL to start
         run: |
@@ -92,7 +95,7 @@ jobs:
           terraform init
           terraform plan
           terraform apply --auto-approve
-          docker logs ${{ env.INSTANCE_NAME }}
+          docker logs ${{ needs.build.outputs.INSTANCE_NAME }}
           echo TFSTATE=$(curl -sS http://localhost:2442/?env=InT) | tee -a $GITHUB_ENV
 
           # TODO: Report failues to summary
@@ -150,8 +153,8 @@ jobs:
       - name: Clean Up
       # Hopefully this is being nice to GHA infra and not just wasting CPU cycles
         run: |
-          docker rm -f ${{ env.INSTANCE_NAME }} || true
-          docker rmi ${{ env.DOCKER_IMAGE_NAME }}:${{ env.CODELINE }} || true
+          docker rm -f ${{ needs.build.outputs.INSTANCE_NAME }} || true
+          docker rmi ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} || true
 
       - name: Summarize Test
         if: success()
