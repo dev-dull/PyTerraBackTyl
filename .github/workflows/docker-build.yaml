@@ -101,6 +101,7 @@ jobs:
           echo "COLS=|Test Name|Status|" >> $GITHUB_ENV
 
       - name: Set Summary Headers
+        run: |
           echo -e 'RESULTS=${{ env.COLS }}\n$(echo ${{ env.COLS }} | sed -r "s/[^|]/-/g")'' | tee -a $GITHUB_ENV
 
       - name: Run 'happy-path' Test
