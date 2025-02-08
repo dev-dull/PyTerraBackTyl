@@ -208,7 +208,8 @@ jobs:
       - name: Tag and Push Latest
         if: github.ref_name == 'main'
         run: |
-          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
-          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.VERSION }}
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.VERSION }}
+          docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.VERSION }}
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           echo "${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}" >> $GITHUB_STEP_SUMMARY
