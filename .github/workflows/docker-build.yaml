@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      - ci
 
 jobs:
   build:
@@ -203,7 +202,7 @@ jobs:
       - name: Tag Docker Image
         if: github.ref_name != 'main'
         run: |
-          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
+          docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
           echo "${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Tag and Push Latest
@@ -211,5 +210,5 @@ jobs:
         run: |
           docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.VERSION }}
-          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
+          docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           echo "${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}" >> $GITHUB_STEP_SUMMARY
