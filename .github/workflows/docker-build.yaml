@@ -1,15 +1,20 @@
 name: Build and Run Docker Image
 
 on:
+  schedule:
+    # Refresh monthly to pick up base image updates
+    - cron: '0 0 1 * *'
   push:
     branches:
-      - 'ci'  # TODO: Trigger on push to release branches
+      - main
+      - ci
 
 jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
       DOCKER_IMAGE_NAME: ${{ steps.build-image-name.outputs.DOCKER_IMAGE_NAME }}
+      VERSION: ${{ steps.build-image-name.outputs.VERSION }}
       CODELINE: ${{ steps.build-image-name.outputs.CODELINE }}
       INSTANCE_NAME: ${{ steps.build-image-name.outputs.INSTANCE_NAME }}
     steps:
@@ -18,10 +23,19 @@ jobs:
 
       - name: Build Image Name
         id: build-image-name
+        # TODO: going to both ENV and OUTPUTS is probably redundant
         run: |
           echo DOCKER_IMAGE_NAME=devdull/$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
           echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
           echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+
+      - name: Set Version
+        run: |
+          version=$(cat pyterrabacktyl.py | grep __version__ | tr -d "[a-zA-Z ='_]")
+          echo "VERSION=${version}" | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          if [ github.ref_name != 'main' ]; then
+            echo "CODELINE=${{ github.ref_name }}_${version}" | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          fi
 
       - name: Build Docker Image
         run: |
@@ -183,17 +197,18 @@ jobs:
       - name: Docker Login
         run: |
           echo '${{ secrets.DOCKERHUB_PASSWORD }}' | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          echo '## Pushed image to DockerHub' >> $GITHUB_STEP_SUMMARY
+          echo '## Push image to DockerHub (v${{ needs.build.outputs.VERSION }})' >> $GITHUB_STEP_SUMMARY
 
       - name: Tag Docker Image
         if: github.ref_name != 'main'
         run: |
-          docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
+          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
           echo "${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Tag and Push Latest
         if: github.ref_name == 'main'
         run: |
           docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.VERSION }}
+          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           echo "${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}" >> $GITHUB_STEP_SUMMARY
