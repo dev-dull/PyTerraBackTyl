@@ -3,7 +3,7 @@ name: Build and Run Docker Image
 on:
   push:
     branches:
-      - 'butts'  # TODO: Trigger on push to release branches
+      - 'ci'  # TODO: Trigger on push to release branches
 
 jobs:
   build:
