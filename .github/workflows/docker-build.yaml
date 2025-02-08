@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      DOCKER_IMAGE_NAME: devdull/${{ steps.build-image-name.outputs.DOCKER_IMAGE_NAME }}
+      DOCKER_IMAGE_NAME: ${{ steps.build-image-name.outputs.DOCKER_IMAGE_NAME }}
       CODELINE: ${{ steps.build-image-name.outputs.CODELINE }}
       INSTANCE_NAME: ${{ steps.build-image-name.outputs.INSTANCE_NAME }}
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Build Image Name
         id: build-image-name
         run: |
-          echo DOCKER_IMAGE_NAME=$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          echo DOCKER_IMAGE_NAME=devdull/$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
           echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
           echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
 
