@@ -185,11 +185,10 @@ jobs:
       - name: Tag Docker Image
         if: github.ref_name != 'main'
         run: |
-          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
           echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
 
       - name: Tag and Push Latest
         if: github.ref_name == 'main'
         run: |
-          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
           echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
