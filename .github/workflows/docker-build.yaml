@@ -163,3 +163,33 @@ jobs:
           # Hopefully this is being nice to GHA infra and not just wasting CPU cycles
           docker rm -f ${{ needs.build.outputs.INSTANCE_NAME }} || true
           docker rmi ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} || true
+
+  tag_and_push:
+    runs-on: ubuntu-latest
+    needs: run_and_test
+    steps:
+      - name: Download Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}.tar
+          path: /tmp
+
+      - name: Load Docker Image
+        run: |
+          docker load -i /tmp/${{ github.event.repository.name }}.tar
+
+      - name: Docker Login
+        run: |
+          echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      - name: Tag Docker Image
+        if: github.ref_name != 'main'
+        run: |
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
+          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }}
+
+      - name: Tag and Push Latest
+        if: github.ref_name == 'main'
+        run: |
+          docker tag ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:${{ needs.build.outputs.CODELINE }} ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
+          echo docker push ${{ needs.build.outputs.DOCKER_IMAGE_NAME }}:latest
