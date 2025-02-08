@@ -6,3 +6,6 @@ creds.txt
 backends/zenoss_post_processor.py
 ssl/private.key
 ssl/public.key
+.github/build_tests/.terraform
+.github/build_tests/*.txt
+.github/build_tests/*.lock.hcl
