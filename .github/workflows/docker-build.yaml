@@ -25,17 +25,18 @@ jobs:
         id: build-image-name
         # TODO: going to both ENV and OUTPUTS is probably redundant
         run: |
-          echo DOCKER_IMAGE_NAME=devdull/$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
-          echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
-          echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
-
-      - name: Set Version
-        run: |
           version=$(cat pyterrabacktyl.py | grep __version__ | tr -d "[a-zA-Z ='_]")
-          echo "VERSION=${version}" | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+
+          # Seems like GITHUB_ENV value can be changed, but value in GITHUB_OUTPUT can NOT
           if [ github.ref_name != 'main' ]; then
             echo "CODELINE=${{ github.ref_name }}_${version}" | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          else
+            echo CODELINE=$(echo ${{ github.ref_name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
           fi
+
+          echo DOCKER_IMAGE_NAME=devdull/$(echo ${{ github.event.repository.name }} | tr '[A-Z]' '[a-z]') | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          echo INSTANCE_NAME=${{ github.ref_name }}_InT | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
+          echo "VERSION=${version}" | tee -a $GITHUB_ENV | tee -a $GITHUB_OUTPUT
 
       - name: Build Docker Image
         run: |
