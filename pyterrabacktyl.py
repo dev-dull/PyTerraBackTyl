@@ -64,7 +64,7 @@ def _set_lock_state(new_state, accepted_states, accepted_method, set_backend_sta
     lock_state = _backends[_env][C.TYL_KEYWORD_BACKEND].get_lock_state()
     if lock_state:
         return _json_string(lock_state), C.LOCK_STATES[C.LOCK_STATE_LOCKED]
-    return 'A server error has occured, and the project\'s state could not be changed.',\
+    return 'A server error has occurred, and the project\'s state could not be changed.',\
            C.LOCK_STATES[_backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_]
 
 def _run_post_processors():
@@ -233,29 +233,61 @@ def set_env_from_url():
             _backends[_env][C.TYL_KEYWORD_BACKEND]._lock_state_ = C.LOCK_STATE_LOCKED
 
 
-def _load_class(class_name, superclass):
-    path_type = type(sys.path)  # Currently a list, but the Python overlords might change that some day.
-    paths = path_type([os.sep.join(abc_tylstore.__file__.split(os.sep)[0:-1])])
-    if isinstance(C.BACKEND_PLUGINS_PATH, str):
-        C.BACKEND_PLUGINS_PATH = path_type([C.BACKEND_PLUGINS_PATH])
-    else:
-        C.BACKEND_PLUGINS_PATH = path_type(C.BACKEND_PLUGINS_PATH)
-    paths += sys.path + C.BACKEND_PLUGINS_PATH
-    sys.path = path_type(set(paths))
+def _load_class(class_name: str, superclass: type) -> type:
+    """Load and validate a class from a module.
 
-    class_parts = class_name.split('.')
-    _class = import_module(class_parts[0])
-    for module_part in class_parts[1:]:
-        logging.debug('Attempting to import: %s' % module_part)
-        _class = getattr(_class, module_part)
-    logging.debug('Successfully imported module %s' % class_name)
+    Args:
+        class_name: Fully qualified class name (e.g. 'module.submodule.Class')
+        superclass: Expected parent class that loaded class should inherit from
 
-    if _class.__name__ in [sc.__name__ for sc in superclass.__subclasses__()]:
-        logging.debug('Successful subclass type validation of %s' % C.BACKEND_CLASS)
+    Returns:
+        The loaded class object
+
+    Raises:
+        PyTerraBackTYLException: If class is not a valid subclass of superclass
+        ImportError: If module/class cannot be imported
+        AttributeError: If specified class doesn't exist in module
+    """
+    try:
+        # Ensure plugin paths are properly formatted
+        plugin_paths = []
+        if C.BACKEND_PLUGINS_PATH:
+            if isinstance(C.BACKEND_PLUGINS_PATH, str):
+                plugin_paths = [C.BACKEND_PLUGINS_PATH]
+            else:
+                plugin_paths = list(C.BACKEND_PLUGINS_PATH)
+
+        # Build complete path list with deduplication
+        base_path = os.path.dirname(abc_tylstore.__file__)
+        search_paths = [base_path] + sys.path + plugin_paths
+        sys.path = list(dict.fromkeys(search_paths))
+
+        # Import the module and get the class
+        module_path, class_name = class_name.rsplit('.', maxsplit=1) if '.' in class_name else ('', class_name)
+        if module_path:
+            module = import_module(module_path)
+            _class = getattr(module, class_name)
+        else:
+            _class = import_module(class_name)
+
+        logging.debug('Successfully imported class %s', class_name)
+
+        # Validate the class is a proper subclass
+        if not issubclass(_class, superclass):
+            raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % class_name)
+
+        logging.debug('Successful subclass validation of %s', class_name)
         return _class
-    else:
-        logging.error(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
-        raise PyTerraBackTYLException(PyTerraBackTYLException.S_IS_INVALID_SUBCLASS_TYPE % C.BACKEND_CLASS)
+
+    except ImportError as e:
+        logging.error('Failed to import module %s: %s', class_name, str(e))
+        raise
+    except AttributeError as e:
+        logging.error('Class %s not found in module: %s', class_name, str(e))
+        raise
+    except Exception as e:
+        logging.error('Unexpected error loading class %s: %s', class_name, str(e))
+        raise
 
 
 backend_class = _load_class(C.BACKEND_CLASS, abc_tylstore.TYLPersistent)
